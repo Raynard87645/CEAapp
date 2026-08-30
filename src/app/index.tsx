@@ -1,98 +1,112 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { BrandHeader } from '@/components/brand-header';
+import { AppButton } from '@/components/ui/app-button';
+import { EyebrowText, SerifTitle } from '@/components/ui/typography';
+import { JAMAICA_DESTINATIONS } from '@/constants/mock-data';
+import { Fonts, Palette, Spacing } from '@/constants/theme';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+export default function LandingScreen() {
+  const router = useRouter();
 
-export default function HomeScreen() {
   return (
-    <ThemedView style={styles.container}>
+    <LinearGradient
+      colors={['#174A39', '#08291F']}
+      start={{ x: 0.2, y: 0 }}
+      end={{ x: 0.8, y: 1 }}
+      style={styles.gradient}>
       <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+        <BrandHeader light style={styles.brand} />
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
+        <View style={styles.content}>
+          <EyebrowText light>YOUR JOURNEY, CONSIDERED</EyebrowText>
+          <SerifTitle size="hero" style={styles.title}>
+            Jamaica,{'\n'}
+            <Text style={styles.titleAccent}>privately yours.</Text>
+          </SerifTitle>
+          <Text style={styles.copy}>
+            One private app for every part of your Tour Jamaica experience—from arrival to the
+            final drive.
+          </Text>
+          <AppButton
+            label="Log In"
+            variant="landing"
+            onPress={() => router.push('/login')}
+            accessibilityHint="Opens the private access login screen"
           />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+        </View>
 
-        {Platform.OS === 'web' && <WebBadge />}
+        <View style={styles.footer}>
+          {JAMAICA_DESTINATIONS.map((destination, index) => (
+            <View key={destination} style={styles.footerItem}>
+              {index > 0 && <View style={styles.goldLine} />}
+              <Text style={styles.footerText}>{destination}</Text>
+            </View>
+          ))}
+        </View>
       </SafeAreaView>
-    </ThemedView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  gradient: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
   },
   safeArea: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+    paddingHorizontal: 26,
+    paddingVertical: 20,
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  brand: {
+    marginBottom: 'auto',
+  },
+  content: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+    justifyContent: 'center',
+    paddingVertical: Spacing.five,
   },
   title: {
-    textAlign: 'center',
+    marginTop: 13,
+    marginBottom: 30,
   },
-  code: {
-    textTransform: 'uppercase',
+  titleAccent: {
+    fontFamily: Fonts.serif,
+    color: Palette.goldLight,
+    fontStyle: 'italic',
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  copy: {
+    fontFamily: Fonts.serif,
+    fontSize: 18,
+    lineHeight: 28,
+    color: Palette.storyText,
+    maxWidth: 460,
+    marginBottom: Spacing.two,
+  },
+  footer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 'auto',
+  },
+  footerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  footerText: {
+    fontSize: 8,
+    letterSpacing: 2,
+    color: Palette.storyFooter,
+    fontWeight: '600',
+  },
+  goldLine: {
+    width: 30,
+    height: 1,
+    backgroundColor: Palette.gold,
   },
 });
