@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router';
 
-export default function HostRedirectLayout() {
+export default function SupportRedirectLayout() {
   return <Redirect href="/(client)" />;
 }

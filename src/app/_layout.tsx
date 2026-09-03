@@ -50,6 +50,10 @@ export default function RootLayout() {
           <Stack.Screen name="login" />
           <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
           <Stack.Screen name="(client)" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="(support)" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="(admin)" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="(fts)" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="(driver)" options={{ gestureEnabled: false }} />
           <Stack.Screen name="(host)" options={{ gestureEnabled: false }} />
         </Stack>
       </ThemeProvider>

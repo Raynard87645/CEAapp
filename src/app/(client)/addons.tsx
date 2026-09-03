@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { useState } from 'react';
 import {
   Modal,
@@ -10,24 +9,28 @@ import {
   View,
 } from 'react-native';
 
+import { AddonsCatalog } from '@/components/addons-catalog';
+import { CepAddonsScreen } from '@/components/cep/cep-addons-screen';
 import { AppHeader } from '@/components/app-header';
 import { AppButton } from '@/components/ui/app-button';
 import { SuccessBanner } from '@/components/ui/success-banner';
 import { EyebrowText, SerifTitle } from '@/components/ui/typography';
-import type { Addon } from '@/constants/mock-data';
 import { Fonts, Layout, Palette, Spacing } from '@/constants/theme';
+import { isExperienceHost } from '@/constants/platforms';
 import { useAuth } from '@/context/auth-context';
 import { useJourney } from '@/context/journey-context';
 
-function statusStyle(status: Addon['status']) {
-  if (status.includes('Approved')) return styles.statusApproved;
-  if (status === 'Processing') return styles.statusProcessing;
-  if (status === 'Confirmed') return styles.statusConfirmed;
-  return styles.statusAvailable;
+export default function AddonsScreen() {
+  const { role, fullName } = useAuth();
+
+  if (isExperienceHost(role)) {
+    return <CepAddonsScreen />;
+  }
+
+  return <ClientAddonsScreen fullName={fullName} />;
 }
 
-export default function AddonsScreen() {
-  const { fullName } = useAuth();
+function ClientAddonsScreen({ fullName }: { fullName: string }) {
   const { updates, addons, avatarUri, markRead, pickAvatar, requestAddon, confirmPayment, addUpdate } =
     useJourney();
 
@@ -63,66 +66,20 @@ export default function AddonsScreen() {
       <AppHeader updates={updates} avatarUri={avatarUri} onAvatarPress={pickAvatar} onNotificationPress={markRead} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.head}>
-          <EyebrowText>CURATED FOR YOUR JOURNEY</EyebrowText>
-          <SerifTitle size="page">
-            Private <Text style={styles.accent}>add-ons</Text>
-          </SerifTitle>
-          <Text style={styles.subtitle}>
-            Request an experience. Alicia will review the details before payment.
-          </Text>
-        </View>
-
-        <View style={styles.flowNote}>
-          <Text style={styles.flowStep}>1 Request</Text>
-          <Text style={styles.flowArrow}>→</Text>
-          <Text style={styles.flowStep}>2 CEA review</Text>
-          <Text style={styles.flowArrow}>→</Text>
-          <Text style={styles.flowStep}>3 Payment</Text>
-          <Text style={styles.flowArrow}>→</Text>
-          <Text style={styles.flowStep}>4 Confirmed</Text>
-        </View>
-
-        <View style={styles.grid}>
-          {addons.map((addon, index) => (
-            <View key={addon.id} style={styles.card}>
-              <Image
-                source={{ uri: addon.image }}
-                style={styles.cardImage}
-                contentFit="cover"
-                transition={200}
-              />
-              <View style={styles.cardOverlay}>
-                <Text style={styles.cardIndex}>0{index + 1}</Text>
-              </View>
-              <View style={styles.cardBody}>
-                <Text style={[styles.status, statusStyle(addon.status)]}>{addon.status}</Text>
-                <Text style={styles.cardTitle}>{addon.name}</Text>
-                <Text style={styles.cardDesc}>{addon.description}</Text>
-                <Text style={styles.cardPrice}>{addon.price}</Text>
-
-                {addon.status === 'Available' && (
-                  <AppButton
-                    label="Request Add-On"
-                    variant="outline"
-                    onPress={() => requestAddon(addon.id)}
-                  />
-                )}
-                {addon.status === 'Processing' && (
-                  <AppButton label="With your CEA" variant="outline" disabled />
-                )}
-                {addon.status.includes('Approved') && (
-                  <AppButton label="Pay Now" onPress={() => setPaymentId(addon.id)} />
-                )}
-                {addon.status === 'Confirmed' && (
-                  <View style={styles.confirmedBadge}>
-                    <Text style={styles.confirmedText}>✓ Confirmed</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          ))}
-        </View>
+        <AddonsCatalog
+          addOns={addons.map((addon) => ({
+            id: addon.id,
+            catalogKey: String(addon.id),
+            name: addon.name,
+            description: addon.description,
+            price: addon.price,
+            image: addon.image,
+            status: addon.status,
+            requestId: null,
+          }))}
+          onRequestAddon={requestAddon}
+          onPay={setPaymentId}
+        />
 
         <View style={styles.customSection}>
           <EyebrowText>PERSONALIZED FOR YOU</EyebrowText>
@@ -217,115 +174,6 @@ const styles = StyleSheet.create({
     paddingTop: 28,
     paddingBottom: Layout.bottomNavHeight + Spacing.five,
     gap: Spacing.four,
-  },
-  head: {
-    gap: 10,
-  },
-  accent: {
-    fontFamily: Fonts.serif,
-    fontStyle: 'italic',
-    color: Palette.greenLight,
-  },
-  subtitle: {
-    color: Palette.muted,
-    fontSize: 14,
-    lineHeight: 21,
-  },
-  flowNote: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: Palette.white,
-    borderWidth: 1,
-    borderColor: Palette.line,
-    padding: 12,
-  },
-  flowStep: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: Palette.green,
-  },
-  flowArrow: {
-    color: Palette.muted,
-    fontSize: 10,
-  },
-  grid: {
-    gap: 10,
-  },
-  card: {
-    backgroundColor: Palette.white,
-    borderWidth: 1,
-    borderColor: Palette.line,
-    overflow: 'hidden',
-  },
-  cardImage: {
-    height: 120,
-    width: '100%',
-  },
-  cardOverlay: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-  },
-  cardIndex: {
-    color: Palette.white,
-    fontSize: 12,
-    fontWeight: '700',
-    textShadowColor: '#000',
-    textShadowRadius: 6,
-  },
-  cardBody: {
-    padding: 16,
-    gap: 8,
-  },
-  status: {
-    alignSelf: 'flex-start',
-    fontSize: 8,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    overflow: 'hidden',
-  },
-  statusAvailable: {
-    color: Palette.green,
-    backgroundColor: '#EEF3EA',
-  },
-  statusProcessing: {
-    color: '#8A6A2D',
-    backgroundColor: '#F7F0E0',
-  },
-  statusApproved: {
-    color: Palette.green,
-    backgroundColor: Palette.sage,
-  },
-  statusConfirmed: {
-    color: Palette.green,
-    backgroundColor: Palette.sage,
-  },
-  cardTitle: {
-    fontFamily: Fonts.serif,
-    fontSize: 20,
-    color: Palette.ink,
-  },
-  cardDesc: {
-    fontSize: 11,
-    color: Palette.muted,
-    lineHeight: 16,
-  },
-  cardPrice: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Palette.ink,
-  },
-  confirmedBadge: {
-    paddingVertical: 10,
-  },
-  confirmedText: {
-    color: Palette.green,
-    fontSize: 11,
-    fontWeight: '700',
   },
   customSection: {
     backgroundColor: Palette.white,

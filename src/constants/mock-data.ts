@@ -195,6 +195,4 @@ export const MESSAGE_QUICK_OPTIONS = [
   'Other',
 ] as const;
 
-export const PASSCODE = 'TJGTapp01!';
-
 export const JAMAICA_DESTINATIONS = ['MONTEGO BAY', 'NEGRIL', 'OCHO RIOS', 'KINGSTON'] as const;

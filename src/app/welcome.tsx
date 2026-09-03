@@ -6,16 +6,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandHeader } from '@/components/brand-header';
 import { EyebrowText, SerifTitle } from '@/components/ui/typography';
+import { getPlatformConfig, getPlatformHomeRoute } from '@/constants/platforms';
 import { Palette, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const { role, firstName, completeWelcome } = useAuth();
+  const { role, firstName, platformLabel, completeWelcome, isAuthenticated, isBootstrapping } =
+    useAuth();
   const progress = useRef(new Animated.Value(0)).current;
+  const platform = getPlatformConfig(role);
 
   useEffect(() => {
-    if (!role) {
+    if (isBootstrapping) return;
+
+    if (!isAuthenticated || !role) {
       router.replace('/');
       return;
     }
@@ -28,21 +33,19 @@ export default function WelcomeScreen() {
 
     const timer = setTimeout(() => {
       completeWelcome();
-      router.replace(role === 'host' ? '/(host)' : '/(client)');
+      router.replace(getPlatformHomeRoute(role));
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [role, router, completeWelcome, progress]);
+  }, [isAuthenticated, isBootstrapping, role, router, completeWelcome, progress]);
 
   const width = progress.interpolate({
     inputRange: [0, 1],
     outputRange: ['0%', '100%'],
   });
 
-  const subtitle =
-    role === 'host'
-      ? 'Your assigned movements are ready.'
-      : 'Your Tour Jamaica experience is now ready.';
+  const subtitle = platform?.welcomeMessage ?? 'Your workspace is now ready.';
+  const subtitleDetail = platform?.welcomeDetail;
 
   return (
     <LinearGradient colors={['#123F30', '#08291F']} style={styles.gradient}>
@@ -55,12 +58,13 @@ export default function WelcomeScreen() {
           </View>
 
           <EyebrowText light style={styles.eyebrow}>
-            PRIVATE EXPERIENCE
+            {platform?.eyebrow ?? platformLabel.toUpperCase()}
           </EyebrowText>
           <SerifTitle size="page" style={styles.title}>
             Welcome, {firstName}
           </SerifTitle>
           <Text style={styles.subtitle}>{subtitle}</Text>
+          {subtitleDetail ? <Text style={styles.subtitleDetail}>{subtitleDetail}</Text> : null}
 
           <View style={styles.progressTrack}>
             <Animated.View style={[styles.progressFill, { width }]} />
@@ -115,6 +119,13 @@ const styles = StyleSheet.create({
     color: '#BBC9C1',
     fontSize: 15,
     lineHeight: 22,
+    maxWidth: 320,
+  },
+  subtitleDetail: {
+    textAlign: 'center',
+    color: '#8FA698',
+    fontSize: 13,
+    lineHeight: 20,
     maxWidth: 320,
   },
   progressTrack: {

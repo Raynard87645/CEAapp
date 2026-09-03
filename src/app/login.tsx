@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -15,26 +15,50 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BrandHeader } from '@/components/brand-header';
 import { AppButton } from '@/components/ui/app-button';
 import { EyebrowText, SerifTitle } from '@/components/ui/typography';
+import { getPlatformHomeRoute } from '@/constants/platforms';
 import { Layout, Palette, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, isAuthenticated, isBootstrapping, hasCompletedWelcome, role } = useAuth();
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [passcode, setPasscode] = useState('');
-  const [showPasscode, setShowPasscode] = useState(false);
+  const [loginToken, setLoginToken] = useState('');
+  const [showLoginToken, setShowLoginToken] = useState(false);
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = () => {
-    const result = login(firstName, lastName, passcode);
-    if (!result.success) {
-      setError(result.error ?? 'Unable to sign in.');
+  useEffect(() => {
+    if (isBootstrapping || !isAuthenticated) return;
+
+    if (!hasCompletedWelcome) {
+      router.replace('/welcome');
       return;
     }
-    router.replace('/welcome');
+
+    if (!role) return;
+
+    router.replace(getPlatformHomeRoute(role));
+  }, [isAuthenticated, isBootstrapping, hasCompletedWelcome, role, router]);
+
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      const result = await login(firstName, lastName, loginToken);
+      if (!result.success) {
+        setError(result.error ?? 'Unable to sign in.');
+        return;
+      }
+      router.replace('/welcome');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -49,11 +73,14 @@ export default function LoginScreen() {
           <BrandHeader style={styles.brand} />
 
           <View style={styles.card}>
-            <EyebrowText>PRIVATE ACCESS</EyebrowText>
+            <EyebrowText>GROUND TRANSPORT ACCESS</EyebrowText>
             <SerifTitle size="page" style={styles.title}>
               Welcome
             </SerifTitle>
-            <Text style={styles.subtitle}>Enter your private access details.</Text>
+            <Text style={styles.subtitle}>
+              Sign in with your first name, last name, and passcode. Your environment is determined
+              automatically after authentication.
+            </Text>
 
             <View style={styles.nameRow}>
               <View style={styles.field}>
@@ -86,20 +113,20 @@ export default function LoginScreen() {
               <Text style={styles.label}>Passcode</Text>
               <View style={styles.passwordWrap}>
                 <TextInput
-                  value={passcode}
-                  onChangeText={setPasscode}
-                  placeholder="Enter passcode"
+                  value={loginToken}
+                  onChangeText={setLoginToken}
+                  placeholder="Enter your passcode"
                   placeholderTextColor={Palette.muted}
-                  secureTextEntry={!showPasscode}
+                  secureTextEntry={!showLoginToken}
                   autoComplete="password"
                   onSubmitEditing={handleSubmit}
                   style={[styles.input, styles.passwordInput]}
                 />
                 <Pressable
                   accessibilityRole="button"
-                  onPress={() => setShowPasscode((visible) => !visible)}
+                  onPress={() => setShowLoginToken((visible) => !visible)}
                   style={styles.showButton}>
-                  <Text style={styles.showButtonText}>{showPasscode ? 'HIDE' : 'SHOW'}</Text>
+                  <Text style={styles.showButtonText}>{showLoginToken ? 'HIDE' : 'SHOW'}</Text>
                 </Pressable>
               </View>
             </View>
@@ -110,7 +137,13 @@ export default function LoginScreen() {
               </Text>
             ) : null}
 
-            <AppButton label="Enter" fullWidth onPress={handleSubmit} style={styles.submit} />
+            <AppButton
+              label={isSubmitting ? 'Signing in…' : 'Enter'}
+              fullWidth
+              disabled={isSubmitting}
+              onPress={handleSubmit}
+              style={styles.submit}
+            />
 
             <View style={styles.secondaryActions}>
               <Pressable
@@ -121,13 +154,13 @@ export default function LoginScreen() {
               </Pressable>
               <Pressable
                 onPress={() =>
-                  setError('Passcode support has been sent to your booking contact.')
+                  setError('Contact your Client Experience Architect if you need a passcode reset.')
                 }>
-                <Text style={styles.secondaryAction}>Forget Passcode</Text>
+                <Text style={styles.secondaryAction}>Forgot Passcode</Text>
               </Pressable>
             </View>
 
-            <Text style={styles.security}>▣ Protected private access</Text>
+            <Text style={styles.security}>▣ Secured Tour Jamaica sign-in</Text>
 
             <Pressable accessibilityRole="button" onPress={() => router.back()}>
               <Text style={styles.backLink}>Back to welcome</Text>

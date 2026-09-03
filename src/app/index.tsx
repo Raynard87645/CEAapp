@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,10 +8,26 @@ import { BrandHeader } from '@/components/brand-header';
 import { AppButton } from '@/components/ui/app-button';
 import { EyebrowText, SerifTitle } from '@/components/ui/typography';
 import { JAMAICA_DESTINATIONS } from '@/constants/mock-data';
+import { getPlatformHomeRoute } from '@/constants/platforms';
 import { Fonts, Palette, Spacing } from '@/constants/theme';
+import { useAuth } from '@/context/auth-context';
 
 export default function LandingScreen() {
   const router = useRouter();
+  const { isAuthenticated, isBootstrapping, hasCompletedWelcome, role } = useAuth();
+
+  useEffect(() => {
+    if (isBootstrapping || !isAuthenticated) return;
+
+    if (!hasCompletedWelcome) {
+      router.replace('/welcome');
+      return;
+    }
+
+    if (!role) return;
+
+    router.replace(getPlatformHomeRoute(role));
+  }, [isAuthenticated, isBootstrapping, hasCompletedWelcome, role, router]);
 
   return (
     <LinearGradient
