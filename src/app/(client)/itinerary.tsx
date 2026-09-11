@@ -1,92 +1,596 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-
 import { AppHeader } from '@/components/app-header';
 import { EyebrowText, SerifTitle } from '@/components/ui/typography';
-import { ITINERARY } from '@/constants/mock-data';
 import { Fonts, Layout, Palette, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { useJourney } from '@/context/journey-context';
+import { api } from '@/services/api/client';
+import type {
+  ItineraryEvent,
+  JourneySummary,
+} from '@/services/api/types';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 export default function ItineraryScreen() {
-  const { fullName } = useAuth();
   const { updates, avatarUri, markRead, pickAvatar } = useJourney();
+  const { bookingId, fullName } = useAuth();
+
+  const [viewMode, setViewMode] = useState<'full' | 'day'>('full');
+
+  const [journey, setJourney] = useState<JourneySummary | null>(null);
+  const [itinerary, setItinerary] = useState<ItineraryEvent[]>([]);
+  const [selectedDay, setSelectedDay] = useState('');
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadItinerary() {
+      if (!bookingId) {
+        if (active) {
+          setError('No booking is linked to this login.');
+          setLoading(false);
+        }
+
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [bookingResponse, itineraryResponse] = await Promise.all([
+          api.bookingOverview(bookingId),
+          api.itinerary(),
+        ]);
+
+        if (!active) {
+          return;
+        }
+
+        const itineraryData = itineraryResponse.itinerary ?? [];
+
+        setJourney(bookingResponse.journey);
+        setItinerary(itineraryData);
+
+        if (itineraryData.length > 0) {
+          setSelectedDay(itineraryData[0].day);
+        }
+      } catch (err) {
+        if (!active) {
+          return;
+        }
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Unable to load your itinerary.',
+        );
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadItinerary();
+
+    return () => {
+      active = false;
+    };
+  }, [bookingId]);
+
+  const selectedItineraryDay = useMemo(
+    () => itinerary.find((item) => item.day === selectedDay),
+    [itinerary, selectedDay],
+  );
 
   return (
     <View style={styles.screen}>
-      <AppHeader updates={updates} avatarUri={avatarUri} onAvatarPress={pickAvatar} onNotificationPress={markRead} />
+      <AppHeader
+        updates={updates}
+        avatarUri={avatarUri}
+        onAvatarPress={pickAvatar}
+        onNotificationPress={markRead}
+      />
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.head}>
-          <EyebrowText>YOUR PRIVATE ITINERARY</EyebrowText>
-          <SerifTitle size="page">
-            Five days,{'\n'}
-            <Text style={styles.accent}>considered.</Text>
-          </SerifTitle>
-          <Text style={styles.subtitle}>
-            A curated journey for {fullName}. Every movement is coordinated by your Tour Jamaica
-            team.
+      {loading ? (
+        <View style={styles.loadingState}>
+          <ActivityIndicator />
+
+          <Text style={styles.loadingText}>
+            Loading your itinerary...
           </Text>
         </View>
-
-        <View style={styles.overview}>
-          <View style={styles.overviewFact}>
-            <Text style={styles.overviewLabel}>DATES</Text>
-            <Text style={styles.overviewValue}>Sep 12—16</Text>
-          </View>
-          <View style={styles.overviewFact}>
-            <Text style={styles.overviewLabel}>GUESTS</Text>
-            <Text style={styles.overviewValue}>4</Text>
-          </View>
-          <View style={styles.overviewFact}>
-            <Text style={styles.overviewLabel}>BASE</Text>
-            <Text style={styles.overviewValue}>Half Moon</Text>
-          </View>
+      ) : error ? (
+        <View style={styles.loadingState}>
+          <Text style={styles.errorText}>{error}</Text>
         </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}>
+          <View style={styles.head}>
+            <EyebrowText>
+              {journey
+                ? `${journey.travelDates} · ${journey.guestCount} ${
+                    journey.guestCount === 1 ? 'Guest' : 'Guests'
+                  }`
+                : 'YOUR JAMAICA EXPERIENCE'}
+            </EyebrowText>
 
-        <View style={styles.timeline}>
-          {ITINERARY.map((event, index) => (
-            <View key={event.title} style={styles.timelineItem}>
-              <View style={styles.dateBox}>
-                <Text style={styles.dateDay}>{event.day.split(' ')[0]}</Text>
-                <Text style={styles.dateNum}>{event.day.split(' ')[1]}</Text>
-              </View>
+            <SerifTitle size="page">
+              Your
+              <Text style={styles.accent}> itinerary</Text>
+            </SerifTitle>
 
-              <View style={styles.timelineRail}>
-                <View style={styles.timelineDot} />
-                {index < ITINERARY.length - 1 && <View style={styles.timelineLine} />}
-              </View>
-
-              <View style={styles.eventCard}>
-                <View style={styles.eventHeader}>
-                  <Text style={styles.eventTag}>{event.tag}</Text>
-                  <Text style={styles.eventTime}>{event.time}</Text>
-                </View>
-                <Text style={styles.eventTitle}>{event.title}</Text>
-                <Text style={styles.eventPlace}>{event.place}</Text>
-                <Text style={styles.eventDetail}>{event.detail}</Text>
-
-                {event.title === 'Arrival Day' && (
-                  <View style={styles.chips}>
-                    <Text style={styles.chip}>Priority Arrival Access</Text>
-                    <Text style={styles.chip}>Lounge Access · Separate service</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.note}>
-          <Text style={styles.noteIcon}>✦</Text>
-          <View style={styles.noteCopy}>
-            <EyebrowText>GUEST EXPERIENCE NOTE</EyebrowText>
-            <Text style={styles.noteText}>
-              Comfortable resort wear is perfect throughout. For your South Coast day, bring swimwear
-              and shoes suitable for light walking.
+            <Text style={styles.subtitle}>
+              Every movement, thoughtfully arranged.
             </Text>
           </View>
-        </View>
-      </ScrollView>
+
+          <View style={styles.viewSwitcher}>
+            <Pressable
+              onPress={() => setViewMode('full')}
+              style={[
+                styles.viewSwitcherButton,
+                viewMode === 'full' &&
+                  styles.viewSwitcherButtonActive,
+              ]}>
+              <Text
+                style={[
+                  styles.viewSwitcherText,
+                  viewMode === 'full' &&
+                    styles.viewSwitcherTextActive,
+                ]}>
+                FULL TRIP
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setViewMode('day')}
+              style={[
+                styles.viewSwitcherButton,
+                viewMode === 'day' &&
+                  styles.viewSwitcherButtonActive,
+              ]}>
+              <Text
+                style={[
+                  styles.viewSwitcherText,
+                  viewMode === 'day' &&
+                    styles.viewSwitcherTextActive,
+                ]}>
+                DAY BY DAY
+              </Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.tripOverview}>
+            <Text style={styles.tripOverviewTitle}>
+              Trip Overview
+            </Text>
+
+            <Text style={styles.guestName}>
+              {journey?.fullName || fullName}
+            </Text>
+
+            <View style={styles.tripDetailsGrid}>
+              <View style={styles.tripFact}>
+                <Text style={styles.tripFactLabel}>
+                  PACKAGE LEVEL
+                </Text>
+
+                <Text style={styles.tripFactValue}>
+                  {journey?.experienceLevel ||
+                    'To be confirmed'}
+                </Text>
+              </View>
+
+              <View style={styles.tripFact}>
+                <Text style={styles.tripFactLabel}>STAY</Text>
+
+                <Text style={styles.tripFactValue}>
+                  {journey?.accommodation ||
+                    'To be confirmed'}
+                </Text>
+              </View>
+
+              <View style={styles.tripFact}>
+                <Text style={styles.tripFactLabel}>
+                  VEHICLE
+                </Text>
+
+                <Text style={styles.tripFactValue}>
+                  {journey?.vehicle || 'To be confirmed'}
+                </Text>
+              </View>
+
+              <View style={styles.tripFact}>
+                <Text style={styles.tripFactLabel}>
+                  AIRPORT
+                </Text>
+
+                <Text style={styles.tripFactValue}>
+                  {journey?.arrival?.airport ||
+                    'To be confirmed'}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {viewMode === 'day' && itinerary.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.daySelector}>
+              {itinerary.map((item, index) => {
+                const active = selectedDay === item.day;
+                const [weekday, date] = item.day.split(' ');
+
+                return (
+                  <Pressable
+                    key={`${item.day}-${index}`}
+                    onPress={() => setSelectedDay(item.day)}
+                    style={[
+                      styles.dayButton,
+                      active && styles.dayButtonActive,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.dayButtonWeekday,
+                        active &&
+                          styles.dayButtonTextActive,
+                      ]}>
+                      {weekday}
+                    </Text>
+
+                    <Text
+                      style={[
+                        styles.dayButtonDate,
+                        active &&
+                          styles.dayButtonTextActive,
+                      ]}>
+                      {date}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
+
+          {itinerary.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateTitle}>
+                Your itinerary is being prepared.
+              </Text>
+
+              <Text style={styles.emptyStateText}>
+                Your confirmed itinerary details will appear
+                here once they are available.
+              </Text>
+            </View>
+          ) : viewMode === 'full' ? (
+            <View style={styles.trip}>
+              {itinerary.map((item, index) => {
+                const [weekday, date] = item.day.split(' ');
+
+                return (
+                  <View
+                    key={`${item.day}-${index}`}
+                    style={styles.daySection}>
+                    <View style={styles.dayHeading}>
+                      <View style={styles.dateBox}>
+                        <Text style={styles.dateDay}>
+                          {weekday}
+                        </Text>
+
+                        <Text style={styles.dateNum}>
+                          {date}
+                        </Text>
+                      </View>
+
+                      <View style={styles.dayHeadingCopy}>
+                        <Text style={styles.dayLabel}>
+                          DAY {index + 1}
+                        </Text>
+
+                        <Text style={styles.dayTitle}>
+                          {item.title || 'Your Day'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.timeline}>
+                      <View style={styles.timelineItem}>
+                        <View style={styles.timelineRail}>
+                          <View style={styles.timelineDot} />
+                        </View>
+
+                        <View style={styles.eventCard}>
+                          <View style={styles.eventHeader}>
+                            <Text style={styles.eventTag}>
+                              {item.tag || 'Experience'}
+                            </Text>
+
+                            <Text style={styles.eventTime}>
+                              {item.time || 'At your pace'}
+                            </Text>
+                          </View>
+
+                          <Text style={styles.eventTitle}>
+                            {item.title || 'Your Day'}
+                          </Text>
+
+                          {!!item.place && (
+                            <Text style={styles.eventPlace}>
+                              {item.place}
+                            </Text>
+                          )}
+
+                          {!!item.detail && (
+                            <Text style={styles.eventDetail}>
+                              {item.detail}
+                            </Text>
+                          )}
+
+                          {item.attractions?.length > 0 && (
+                            <View style={styles.attractions}>
+                              <Text style={styles.attractionsLabel}>
+                                ATTRACTIONS
+                              </Text>
+
+                              {item.attractions.map(
+                                (attraction, attractionIndex) => (
+                                  <View
+                                    key={attraction.id}
+                                    style={styles.attractionItem}>
+                                    <View style={styles.attractionNumber}>
+                                      <Text
+                                        style={
+                                          styles.attractionNumberText
+                                        }>
+                                        {attractionIndex + 1}
+                                      </Text>
+                                    </View>
+
+                                    <View style={styles.attractionCopy}>
+                                      <Text style={styles.attractionName}>
+                                        {attraction.name}
+                                      </Text>
+
+                                      {(attraction.arrivalTime ||
+                                        attraction.departureTime) && (
+                                        <Text style={styles.attractionTime}>
+                                          {attraction.arrivalTime ?? 'TBC'}
+
+                                          {attraction.departureTime
+                                            ? ` – ${attraction.departureTime}`
+                                            : ''}
+                                        </Text>
+                                      )}
+
+                                      {!!attraction.guestExperienceNotes && (
+                                        <Text
+                                          style={
+                                            styles.attractionDescription
+                                          }>
+                                          {
+                                            attraction.guestExperienceNotes
+                                          }
+                                        </Text>
+                                      )}
+
+                                      {!!attraction.mealNotes && (
+                                        <Text
+                                          style={
+                                            styles.attractionDescription
+                                          }>
+                                          Dining: {attraction.mealNotes}
+                                        </Text>
+                                      )}
+
+                                      {attraction.ticketsRequired ===
+                                        'Yes' && (
+                                        <Text style={styles.attractionMeta}>
+                                          Tickets:{' '}
+                                          {attraction.ticketsConfirmed ||
+                                            'Pending'}
+                                        </Text>
+                                      )}
+
+                                      {attraction.vipRequired === 'Yes' && (
+                                        <Text style={styles.attractionMeta}>
+                                          VIP / Fast-Track:{' '}
+                                          {attraction.vipConfirmed ||
+                                            'Pending'}
+                                        </Text>
+                                      )}
+                                    </View>
+                                  </View>
+                                ),
+                              )}
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          ) : selectedItineraryDay ? (
+            <View style={styles.daySection}>
+              <View style={styles.dayHeading}>
+                <View style={styles.dateBox}>
+                  <Text style={styles.dateDay}>
+                    {selectedItineraryDay.day.split(' ')[0]}
+                  </Text>
+
+                  <Text style={styles.dateNum}>
+                    {selectedItineraryDay.day.split(' ')[1]}
+                  </Text>
+                </View>
+
+                <View style={styles.dayHeadingCopy}>
+                  <Text style={styles.dayLabel}>
+                    DAY{' '}
+                    {itinerary.findIndex(
+                      (item) =>
+                        item.day === selectedItineraryDay.day,
+                    ) + 1}
+                  </Text>
+
+                  <Text style={styles.dayTitle}>
+                    {selectedItineraryDay.title ||
+                      'Your Day'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.timeline}>
+                <View style={styles.timelineItem}>
+                  <View style={styles.timelineRail}>
+                    <View style={styles.timelineDot} />
+                  </View>
+
+                  <View style={styles.eventCard}>
+                    <View style={styles.eventHeader}>
+                      <Text style={styles.eventTag}>
+                        {selectedItineraryDay.tag ||
+                          'Experience'}
+                      </Text>
+
+                      <Text style={styles.eventTime}>
+                        {selectedItineraryDay.time ||
+                          'At your pace'}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.eventTitle}>
+                      {selectedItineraryDay.title ||
+                        'Your Day'}
+                    </Text>
+
+                    {!!selectedItineraryDay.place && (
+                      <Text style={styles.eventPlace}>
+                        {selectedItineraryDay.place}
+                      </Text>
+                    )}
+
+                    {!!selectedItineraryDay.detail && (
+                      <Text style={styles.eventDetail}>
+                        {selectedItineraryDay.detail}
+                      </Text>
+                    )}
+
+                    {selectedItineraryDay.attractions?.length > 0 && (
+                      <View style={styles.attractions}>
+                        <Text style={styles.attractionsLabel}>
+                          ATTRACTIONS
+                        </Text>
+
+                        {selectedItineraryDay.attractions.map(
+                          (attraction, attractionIndex) => (
+                            <View
+                              key={attraction.id}
+                              style={styles.attractionItem}>
+                              <View style={styles.attractionNumber}>
+                                <Text
+                                  style={
+                                    styles.attractionNumberText
+                                  }>
+                                  {attractionIndex + 1}
+                                </Text>
+                              </View>
+
+                              <View style={styles.attractionCopy}>
+                                <Text style={styles.attractionName}>
+                                  {attraction.name}
+                                </Text>
+
+                                {(attraction.arrivalTime ||
+                                  attraction.departureTime) && (
+                                  <Text style={styles.attractionTime}>
+                                    {attraction.arrivalTime ?? 'TBC'}
+
+                                    {attraction.departureTime
+                                      ? ` – ${attraction.departureTime}`
+                                      : ''}
+                                  </Text>
+                                )}
+
+                                {!!attraction.guestExperienceNotes && (
+                                  <Text
+                                    style={
+                                      styles.attractionDescription
+                                    }>
+                                    {
+                                      attraction.guestExperienceNotes
+                                    }
+                                  </Text>
+                                )}
+
+                                {!!attraction.mealNotes && (
+                                  <Text
+                                    style={
+                                      styles.attractionDescription
+                                    }>
+                                    Dining: {attraction.mealNotes}
+                                  </Text>
+                                )}
+
+                                {attraction.ticketsRequired === 'Yes' && (
+                                  <Text style={styles.attractionMeta}>
+                                    Tickets:{' '}
+                                    {attraction.ticketsConfirmed ||
+                                      'Pending'}
+                                  </Text>
+                                )}
+
+                                {attraction.vipRequired === 'Yes' && (
+                                  <Text style={styles.attractionMeta}>
+                                    VIP / Fast-Track:{' '}
+                                    {attraction.vipConfirmed ||
+                                      'Pending'}
+                                  </Text>
+                                )}
+                              </View>
+                            </View>
+                          ),
+                        )}
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            </View>
+          ) : null}
+
+          <View style={styles.note}>
+            <Text style={styles.noteIcon}>✦</Text>
+
+            <View style={styles.noteCopy}>
+              <EyebrowText>
+                GUEST EXPERIENCE NOTE
+              </EyebrowText>
+
+              <Text style={styles.noteText}>
+                Additional guest experience notes will
+                appear here when confirmed.
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -99,56 +603,155 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'center',
   },
+
   content: {
     paddingHorizontal: 18,
     paddingTop: 28,
     paddingBottom: Layout.bottomNavHeight + Spacing.five,
     gap: Spacing.four,
   },
+
+  loadingState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    padding: 24,
+  },
+
+  loadingText: {
+    fontSize: 12,
+    color: Palette.muted,
+    textAlign: 'center',
+  },
+
+  errorText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Palette.muted,
+    textAlign: 'center',
+  },
+
   head: {
     gap: 10,
   },
+
   accent: {
     fontFamily: Fonts.serif,
     fontStyle: 'italic',
     color: Palette.greenLight,
   },
+
   subtitle: {
     color: Palette.muted,
     fontSize: 14,
     lineHeight: 21,
   },
-  overview: {
+
+  viewSwitcher: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: Palette.white,
+    backgroundColor: Palette.paper,
     borderWidth: 1,
     borderColor: Palette.line,
     borderRadius: 8,
-    padding: 18,
+    padding: 4,
   },
-  overviewFact: {
-    gap: 4,
+
+  viewSwitcherButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    borderRadius: 6,
   },
-  overviewLabel: {
-    fontSize: 7,
-    letterSpacing: 1.2,
+
+  viewSwitcherButtonActive: {
+    backgroundColor: Palette.green,
+  },
+
+  viewSwitcherText: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1,
     color: Palette.muted,
-    fontWeight: '700',
   },
-  overviewValue: {
+
+  viewSwitcherTextActive: {
+    color: Palette.cream,
+  },
+
+  daySelector: {
+    gap: 8,
+    paddingRight: 18,
+  },
+
+  dayButton: {
+    width: 58,
+    height: 58,
+    borderWidth: 1,
+    borderColor: Palette.line,
+    borderRadius: 8,
+    backgroundColor: Palette.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+
+  dayButtonActive: {
+    backgroundColor: Palette.green,
+    borderColor: Palette.green,
+  },
+
+  dayButtonWeekday: {
+    fontSize: 7,
+    fontWeight: '800',
+    letterSpacing: 1,
+    color: Palette.muted,
+    textTransform: 'uppercase',
+  },
+
+  dayButtonDate: {
     fontFamily: Fonts.serif,
     fontSize: 18,
     color: Palette.ink,
   },
-  timeline: {
-    gap: 0,
+
+  dayButtonTextActive: {
+    color: Palette.cream,
   },
-  timelineItem: {
+
+  trip: {
+    gap: Spacing.four,
+  },
+
+  daySection: {
+    gap: 16,
+  },
+
+  dayHeading: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
-    marginBottom: 18,
   },
+
+  dayHeadingCopy: {
+    flex: 1,
+    gap: 3,
+  },
+
+  dayLabel: {
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 1.1,
+    color: Palette.green,
+  },
+
+  dayTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: 20,
+    color: Palette.ink,
+  },
+
   dateBox: {
     width: 47,
     height: 51,
@@ -158,21 +761,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   dateDay: {
     fontSize: 7,
     letterSpacing: 1,
     color: Palette.muted,
     fontWeight: '700',
   },
+
   dateNum: {
     fontSize: 19,
     fontWeight: '700',
     color: Palette.ink,
   },
+
+  timeline: {
+    gap: 0,
+  },
+
+  timelineItem: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+
   timelineRail: {
     width: 22,
     alignItems: 'center',
   },
+
   timelineDot: {
     width: 8,
     height: 8,
@@ -180,12 +796,7 @@ const styles = StyleSheet.create({
     backgroundColor: Palette.gold,
     marginTop: 20,
   },
-  timelineLine: {
-    flex: 1,
-    width: 1,
-    backgroundColor: Palette.line,
-    marginTop: 4,
-  },
+
   eventCard: {
     flex: 1,
     backgroundColor: Palette.white,
@@ -193,50 +804,48 @@ const styles = StyleSheet.create({
     borderColor: Palette.line,
     padding: 12,
     gap: 6,
+    marginBottom: 14,
   },
+
   eventHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 12,
   },
+
   eventTag: {
+    flex: 1,
     fontSize: 8,
     letterSpacing: 1,
     color: Palette.green,
     fontWeight: '700',
+    textTransform: 'uppercase',
   },
+
   eventTime: {
     fontSize: 8,
     color: Palette.muted,
   },
+
   eventTitle: {
     fontFamily: Fonts.serif,
     fontSize: 18,
     color: Palette.ink,
   },
+
   eventPlace: {
     fontSize: 11,
     fontWeight: '700',
     color: Palette.ink,
   },
+
   eventDetail: {
     fontSize: 11,
     color: Palette.muted,
     lineHeight: 16,
   },
-  chips: {
-    gap: 6,
-    marginTop: 4,
-  },
-  chip: {
-    alignSelf: 'flex-start',
-    fontSize: 8,
-    color: Palette.green,
-    backgroundColor: '#EEF3EA',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    overflow: 'hidden',
-  },
+
   note: {
     flexDirection: 'row',
     gap: 12,
@@ -245,17 +854,236 @@ const styles = StyleSheet.create({
     borderColor: Palette.line,
     padding: 18,
   },
+
   noteIcon: {
     fontSize: 18,
     color: Palette.gold,
   },
+
   noteCopy: {
     flex: 1,
     gap: 8,
   },
+
   noteText: {
     fontSize: 12,
     lineHeight: 18,
     color: Palette.muted,
   },
+
+  attractions: {
+    marginTop: 10,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: Palette.line,
+    gap: 10,
+  },
+
+  attractionsLabel: {
+    fontSize: 7,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    color: Palette.green,
+  },
+
+  attractionItem: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+
+  attractionNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Palette.paper,
+    borderWidth: 1,
+    borderColor: Palette.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  attractionNumberText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: Palette.green,
+  },
+
+  attractionCopy: {
+    flex: 1,
+    gap: 3,
+  },
+
+  attractionName: {
+    fontFamily: Fonts.serif,
+    fontSize: 15,
+    color: Palette.ink,
+  },
+
+  attractionTime: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: Palette.ink,
+  },
+
+  attractionDescription: {
+    fontSize: 10,
+    lineHeight: 15,
+    color: Palette.muted,
+  },
+
+  attractionMeta: {
+    fontSize: 9,
+    lineHeight: 14,
+    color: Palette.green,
+    fontWeight: '700',
+  },
+
+  tripOverview: {
+    backgroundColor: Palette.green,
+    borderRadius: 10,
+    padding: 18,
+    gap: 14,
+  },
+
+  tripOverviewTitle: {
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 1.3,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.55)',
+  },
+
+  guestName: {
+    width: '100%',
+    fontFamily: Fonts.serif,
+    fontSize: 22,
+    lineHeight: 28,
+    color: Palette.cream,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.15)',
+  },
+
+  tripDetailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: 18,
+  },
+
+  tripFact: {
+    width: '50%',
+    paddingRight: 12,
+    gap: 5,
+  },
+
+  tripFactLabel: {
+    fontSize: 7,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    color: 'rgba(255,255,255,0.5)',
+  },
+
+  tripFactValue: {
+    fontFamily: Fonts.serif,
+    fontSize: 14,
+    lineHeight: 19,
+    color: Palette.cream,
+  },
+
+  emptyState: {
+    backgroundColor: Palette.white,
+    borderWidth: 1,
+    borderColor: Palette.line,
+    borderRadius: 8,
+    padding: 24,
+    alignItems: 'center',
+    gap: 8,
+  },
+
+  emptyStateTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: 18,
+    color: Palette.ink,
+    textAlign: 'center',
+  },
+
+  emptyStateText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Palette.muted,
+    textAlign: 'center',
+  },
+
+
+     /*
+tripOverview: {
+  backgroundColor: Palette.green,
+  borderRadius: 10,
+  padding: 18,
+  gap: 18,
+},
+
+tripOverviewTitle: {
+  fontFamily: Fonts.serif,
+  fontSize: 22,
+  color: Palette.cream,
+},
+
+tripOverviewTopRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  gap: 20,
+},
+
+guestBlock: {
+  flex: 1.2,
+  gap: 4,
+},
+
+guestName: {
+  fontFamily: Fonts.serif,
+  fontSize: 18,
+  color: Palette.cream,
+  marginBottom: 8,
+},
+
+packageLabel: {
+  fontSize: 7,
+  fontWeight: '800',
+  letterSpacing: 1.2,
+  color: 'rgba(255,255,255,0.55)',
+},
+
+packageValue: {
+  fontSize: 12,
+  fontWeight: '700',
+  color: Palette.cream,
+},
+
+tripFacts: {
+  flex: 2,
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  gap: 16,
+},
+
+tripFact: {
+  flex: 1,
+  gap: 4,
+},
+
+tripFactLabel: {
+  fontSize: 7,
+  fontWeight: '800',
+  letterSpacing: 1.2,
+  color: 'rgba(255,255,255,0.55)',
+},
+
+tripFactValue: {
+  fontFamily: Fonts.serif,
+  fontSize: 14,
+  lineHeight: 18,
+  color: Palette.cream,
+},
+  */
 });

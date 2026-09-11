@@ -14,20 +14,36 @@ import { useAuth } from '@/context/auth-context';
 
 export default function LandingScreen() {
   const router = useRouter();
-  const { isAuthenticated, isBootstrapping, hasCompletedWelcome, role } = useAuth();
+
+  const {
+    isAuthenticated,
+    isBootstrapping,
+    hasCompletedWelcome,
+    role,
+  } = useAuth();
 
   useEffect(() => {
-    if (isBootstrapping || !isAuthenticated) return;
+    if (isBootstrapping || !isAuthenticated) {
+      return;
+    }
 
     if (!hasCompletedWelcome) {
       router.replace('/welcome');
       return;
     }
 
-    if (!role) return;
+    if (!role) {
+      return;
+    }
 
     router.replace(getPlatformHomeRoute(role));
-  }, [isAuthenticated, isBootstrapping, hasCompletedWelcome, role, router]);
+  }, [
+    isAuthenticated,
+    isBootstrapping,
+    hasCompletedWelcome,
+    role,
+    router,
+  ]);
 
   return (
     <LinearGradient
@@ -39,15 +55,22 @@ export default function LandingScreen() {
         <BrandHeader light style={styles.brand} />
 
         <View style={styles.content}>
-          <EyebrowText light>YOUR JOURNEY, CONSIDERED</EyebrowText>
+          <EyebrowText light>
+            YOUR JOURNEY, CONSIDERED
+          </EyebrowText>
+
           <SerifTitle size="hero" style={styles.title}>
             Jamaica,{'\n'}
-            <Text style={styles.titleAccent}>privately yours.</Text>
+            <Text style={styles.titleAccent}>
+              privately yours.
+            </Text>
           </SerifTitle>
+
           <Text style={styles.copy}>
-            One private app for every part of your Tour Jamaica experience—from arrival to the
-            final drive.
+            One private app for every part of your Tour Jamaica
+            experience—from arrival to the final drive.
           </Text>
+
           <AppButton
             label="Log In"
             variant="landing"
@@ -60,7 +83,10 @@ export default function LandingScreen() {
           {JAMAICA_DESTINATIONS.map((destination, index) => (
             <View key={destination} style={styles.footerItem}>
               {index > 0 && <View style={styles.goldLine} />}
-              <Text style={styles.footerText}>{destination}</Text>
+
+              <Text style={styles.footerText}>
+                {destination}
+              </Text>
             </View>
           ))}
         </View>
@@ -73,28 +99,34 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
+
   safeArea: {
     flex: 1,
     paddingHorizontal: 26,
     paddingVertical: 20,
   },
+
   brand: {
     marginBottom: 'auto',
   },
+
   content: {
     flex: 1,
     justifyContent: 'center',
     paddingVertical: Spacing.five,
   },
+
   title: {
     marginTop: 13,
     marginBottom: 30,
   },
+
   titleAccent: {
     fontFamily: Fonts.serif,
     color: Palette.goldLight,
     fontStyle: 'italic',
   },
+
   copy: {
     fontFamily: Fonts.serif,
     fontSize: 18,
@@ -103,6 +135,7 @@ const styles = StyleSheet.create({
     maxWidth: 460,
     marginBottom: Spacing.two,
   },
+
   footer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -110,17 +143,20 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 'auto',
   },
+
   footerItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
+
   footerText: {
     fontSize: 8,
     letterSpacing: 2,
     color: Palette.storyFooter,
     fontWeight: '600',
   },
+
   goldLine: {
     width: 30,
     height: 1,

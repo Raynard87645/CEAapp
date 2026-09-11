@@ -55,14 +55,36 @@ export type JourneySummary = {
   guestCount: number;
   durationDays: number;
   travelDates: string;
-  destination: string;
+  destination: string | null;
   accommodation: string;
-  vehicle: string;
+  vehicle: string | null;
   ceaName: string;
   hostName: string;
-  arrival: { airport: string; time: string };
-  departure: { airport: string; time: string };
+  arrival: {
+    date: string | null;
+    airport: string | null;
+    time: string | null;
+  };
+  departure: {
+    date: string | null;
+    airport: string | null;
+    time: string | null;
+  };
   journeyStatus: 'finalized' | 'preparing';
+};
+
+export type ItineraryAttraction = {
+  id: number;
+  name: string;
+  date: string | null;
+  arrivalTime: string | null;
+  departureTime: string | null;
+  ticketsRequired: string | null;
+  ticketsConfirmed: string | null;
+  vipRequired: string | null;
+  vipConfirmed: string | null;
+  mealNotes: string | null;
+  guestExperienceNotes: string | null;
 };
 
 export type ItineraryEvent = {
@@ -72,17 +94,27 @@ export type ItineraryEvent = {
   place: string;
   detail: string;
   tag: string;
+  attractions: ItineraryAttraction[];
 };
+
+export type AddOnStatus =
+  | 'Available'
+  | 'Requested'
+  | 'Pending Review'
+  | 'Awaiting Payment'
+  | 'Confirmed'
+  | 'Not Approved';
 
 export type AddOnItem = {
   id: number;
   catalogKey: string;
   name: string;
   description: string;
-  price: string;
-  image: string;
-  status: string;
+  price: string | null;
+  image: string | null;
+  status: AddOnStatus;
   requestId: number | null;
+  notApprovedReason: string | null;
 };
 
 export type UpdateItem = {

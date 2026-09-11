@@ -1,13 +1,15 @@
 import { useRouter } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
+import { AppHeader } from '@/components/app-header';
 import { BookingsListScreen } from '@/components/cep/bookings-list-screen';
 import { ClientJourneyOverview } from '@/components/client-journey-overview';
-import { AppHeader } from '@/components/app-header';
 import { isExperienceHost } from '@/constants/platforms';
 import { Layout, Palette } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { useJourney } from '@/context/journey-context';
+import { api } from '@/services/api/client';
 import type { JourneySummary } from '@/services/api/types';
 
 export default function ClientIndexScreen() {
@@ -22,25 +24,57 @@ export default function ClientIndexScreen() {
 
 function ClientHomeScreen() {
   const router = useRouter();
-  const { firstName, fullName } = useAuth();
+
+  const { bookingId } = useAuth();
   const { updates, avatarUri, markRead, pickAvatar } = useJourney();
 
-  const journey: JourneySummary = {
-    fullName,
-    firstName,
-    experienceLevel: 'Gold Experience',
-    guestCount: 4,
-    durationDays: 5,
-    travelDates: 'Sep 12—16, 2026',
-    destination: 'Montego Bay',
-    accommodation: 'Half Moon',
-    vehicle: 'AMG GLS 63',
-    ceaName: 'Alicia Brown',
-    hostName: 'Andre Williams',
-    arrival: { airport: 'MBJ', time: '2:35 p.m.' },
-    departure: { airport: 'MBJ', time: '10:15 a.m.' },
-    journeyStatus: 'finalized',
-  };
+  const [journey, setJourney] = useState<JourneySummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadJourney() {
+      if (!bookingId) {
+        if (active) {
+          setError('No booking is linked to this login.');
+          setLoading(false);
+        }
+
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await api.bookingOverview(bookingId);
+
+        if (active) {
+          setJourney(response.journey);
+        }
+      } catch (err) {
+        if (active) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : 'Unable to load your trip details.',
+          );
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadJourney();
+
+    return () => {
+      active = false;
+    };
+  }, [bookingId]);
 
   return (
     <View style={styles.screen}>
@@ -54,11 +88,21 @@ function ClientHomeScreen() {
         }}
       />
 
-      <ClientJourneyOverview
-        journey={journey}
-        onViewItinerary={() => router.navigate('/itinerary')}
-        onExploreAddOns={() => router.navigate('/addons')}
-      />
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator />
+        </View>
+      ) : error ? (
+        <View style={styles.center}>
+          <Text>{error}</Text>
+        </View>
+      ) : journey ? (
+        <ClientJourneyOverview
+          journey={journey}
+          onViewItinerary={() => router.navigate('/itinerary')}
+          onExploreAddOns={() => router.navigate('/addons')}
+        />
+      ) : null}
     </View>
   );
 }
@@ -70,5 +114,12 @@ const styles = StyleSheet.create({
     maxWidth: Layout.maxWidth,
     width: '100%',
     alignSelf: 'center',
+  },
+
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
   },
 });

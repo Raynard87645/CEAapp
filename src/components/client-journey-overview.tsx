@@ -4,8 +4,8 @@ import { ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native
 import { SummaryCard } from '@/components/ui/summary-card';
 import { EyebrowText, SerifTitle } from '@/components/ui/typography';
 import { Fonts, Layout, Palette, Spacing } from '@/constants/theme';
-import type { JourneySummary } from '@/services/api/types';
 import { useGreeting } from '@/hooks/use-journey-state';
+import type { JourneySummary } from '@/services/api/types';
 
 type ClientJourneyOverviewProps = {
   journey: JourneySummary;
@@ -63,7 +63,7 @@ export function ClientJourneyOverview({
         <View>
           <Text style={styles.heroDate}>{journey.travelDates.toUpperCase()}</Text>
           <Text style={styles.heroTitle}>
-            {journey.destination}
+            {/*{journey.destination}*/}Montego Bay
             {'\n'}
             <Text style={styles.heroTitleAccent}>in your own time.</Text>
           </Text>

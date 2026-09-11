@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import type { Update } from '@/constants/mock-data';
+
 export function useGreeting() {
   const [greeting, setGreeting] = useState(() => getGreeting());
 
   useEffect(() => {
-    const interval = setInterval(() => setGreeting(getGreeting()), 60_000);
+    const interval = setInterval(() => {
+      setGreeting(getGreeting());
+    }, 60_000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -13,26 +18,46 @@ export function useGreeting() {
 
 function getGreeting() {
   const hour = new Date().getHours();
+
   if (hour < 12) return 'Good morning';
   if (hour < 17) return 'Good afternoon';
+
   return 'Good evening';
 }
 
-export function useUpdatesState(initialUpdates: import('@/constants/mock-data').Update[]) {
-  const [updates, setUpdates] = useState(initialUpdates);
+export function useUpdatesState(initialUpdates: Update[] = []) {
+  const [updates, setUpdates] = useState<Update[]>(initialUpdates);
   const [highlightId, setHighlightId] = useState<number | null>(null);
 
-  const unreadCount = useMemo(() => updates.filter((item) => item.unread).length, [updates]);
+  const unreadCount = useMemo(
+    () => updates.filter((item) => item.unread).length,
+    [updates],
+  );
 
   const markRead = (id: number) => {
     setUpdates((current) =>
-      current.map((item) => (item.id === id ? { ...item, unread: false } : item)),
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              unread: false,
+            }
+          : item,
+      ),
     );
+
     setHighlightId(id);
-    setTimeout(() => setHighlightId(null), 2200);
+
+    setTimeout(() => {
+      setHighlightId(null);
+    }, 2200);
   };
 
-  const addUpdate = (message: string, kind: string, from = 'Tour Jamaica') => {
+  const addUpdate = (
+    message: string,
+    kind: string,
+    from = 'Tour Jamaica',
+  ) => {
     setUpdates((current) => [
       {
         id: Date.now(),
@@ -46,5 +71,12 @@ export function useUpdatesState(initialUpdates: import('@/constants/mock-data').
     ]);
   };
 
-  return { updates, unreadCount, highlightId, markRead, addUpdate, setUpdates };
+  return {
+    updates,
+    unreadCount,
+    highlightId,
+    markRead,
+    addUpdate,
+    setUpdates,
+  };
 }
