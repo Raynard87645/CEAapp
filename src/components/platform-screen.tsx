@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BrandHeader } from '@/components/brand-header';
+import { DrawerMenuButton } from '@/components/drawer-menu-button';
 import { EyebrowText, SerifTitle } from '@/components/ui/typography';
 import type { PlatformConfig } from '@/constants/platforms';
 import { Layout, Palette, Spacing } from '@/constants/theme';
@@ -19,7 +20,10 @@ export function PlatformScreen({ platform, title, subtitle, body }: PlatformScre
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <BrandHeader compact />
+        <View style={styles.leading}>
+          <DrawerMenuButton />
+          <BrandHeader compact />
+        </View>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{roleLabel.slice(0, 2).toUpperCase()}</Text>
         </View>
@@ -60,6 +64,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 8,
+  },
+  leading: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minWidth: 0,
   },
   badge: {
     width: 38,

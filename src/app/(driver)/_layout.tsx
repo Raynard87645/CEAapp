@@ -1,6 +1,11 @@
+import { DriverTabLayout } from '@/components/driver-tab-layout';
 import { PLATFORMS } from '@/constants/platforms';
-import { PlatformTabLayout } from '@/components/platform-tab-layout';
+import { DriverProvider } from '@/context/driver-context';
 
 export default function DriverLayout() {
-  return <PlatformTabLayout allowedRoles={['driver']} tabs={PLATFORMS.driver.tabs} />;
+  return (
+    <DriverProvider>
+      <DriverTabLayout tabs={PLATFORMS.driver.tabs} />
+    </DriverProvider>
+  );
 }

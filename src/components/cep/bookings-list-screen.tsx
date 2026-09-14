@@ -1,11 +1,11 @@
 import { BrandHeader } from '@/components/brand-header';
+import { DrawerMenuButton } from '@/components/drawer-menu-button';
 import { BookingOverviewScreen } from '@/components/cep/booking-overview-screen';
 import { EyebrowText, SerifTitle } from '@/components/ui/typography';
 import { Fonts, Layout, Palette, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { api } from '@/services/api/client';
 import type { BookingListItem } from '@/services/api/types';
-import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -61,18 +61,12 @@ function BookingCard({
 }
 
 export function BookingsListScreen() {
-  const { firstName, roleLabel, logout } = useAuth();
+  const { firstName, roleLabel } = useAuth();
   const [bookings, setBookings] = useState<BookingListItem[]>([]);
   const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const router = useRouter();
-
-  const handleLogout = async () => {
-  await logout();
-  router.replace('/login');
-  };
 
   const loadBookings = useCallback(async (refresh = false) => {
     if (refresh) {
@@ -110,7 +104,10 @@ export function BookingsListScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <BrandHeader compact />
+        <View style={styles.leading}>
+          <DrawerMenuButton />
+          <BrandHeader compact />
+        </View>
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{firstName.charAt(0).toUpperCase()}</Text>
         </View>
@@ -127,12 +124,6 @@ export function BookingsListScreen() {
         <Text style={styles.subtitle}>
           {roleLabel} · {bookings.length} completed {bookings.length === 1 ? 'journey' : 'journeys'}
         </Text>
-
-        {__DEV__ && (
-          <Pressable onPress={handleLogout} style={styles.devLogout}>
-            <Text style={styles.devLogoutText}>DEV: Log Out</Text>
-          </Pressable>
-        )}
 
         {isLoading ? (
           <ActivityIndicator color={Palette.green} style={styles.loader} />
@@ -178,6 +169,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 8,
+  },
+  leading: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minWidth: 0,
   },
   badge: {
     width: 38,
@@ -313,21 +312,5 @@ const styles = StyleSheet.create({
     color: Palette.green,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
-  },
-    devLogout: {
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: Palette.line,
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: Palette.paper,
-  },
-
-  devLogoutText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: Palette.green,
-    letterSpacing: 0.8,
   },
 });

@@ -66,10 +66,16 @@ export async function apiRequest<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
+  const isFormData =
+    typeof FormData !== 'undefined' && options.body instanceof FormData;
+
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    'Content-Type': 'application/json',
   };
+
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (options.auth !== false) {
     const token = await getAuthToken();
@@ -90,7 +96,9 @@ export async function apiRequest<T>(
       method: options.method ?? 'GET',
       headers,
       body: options.body
-        ? JSON.stringify(options.body)
+        ? isFormData
+          ? (options.body as FormData)
+          : JSON.stringify(options.body)
         : undefined,
     });
   } catch (error) {
@@ -100,14 +108,14 @@ export async function apiRequest<T>(
         : 'Network request failed';
 
     if (
-      /finding host|network request failed|failed to connect|could not connect/i.test(
+      /unknown host|finding host|network request failed|failed to connect|could not connect/i.test(
         message,
       )
     ) {
       throw new Error(
         `Cannot reach the Tour Jamaica API at ${baseUrl}. ` +
           (__DEV__
-            ? 'Start the backend on port 8001 (not Expo’s 8081): cd ../tjgt && php artisan serve --host=0.0.0.0 --port=8001'
+            ? 'Start the backend on port 8001 (not Expo’s 8081): cd ../tjgt && php artisan serve --host=0.0.0.0 --port=8001. If using a Mac-only hostname in EXPO_PUBLIC_API_URL, the app auto-swaps to your Expo LAN IP in dev — ensure your phone and Mac are on the same Wi‑Fi.'
             : 'Check your internet connection and try again.'),
       );
     }
@@ -178,6 +186,31 @@ export const api = {
       import('@/services/api/types').BookingOverviewResponse
     >(
       `/bookings/${bookingId}`,
+    ),
+
+  bookingItinerary: (bookingId: number) =>
+    apiRequest<{
+      itinerary: import('@/services/api/types').ItineraryEvent[];
+    }>(`/bookings/${bookingId}/itinerary`),
+
+  bookingNotifications: (bookingId: number) =>
+    apiRequest<{
+      updates: import('@/services/api/types').UpdateItem[];
+      unreadCount: number;
+    }>(`/bookings/${bookingId}/notifications`),
+
+  markBookingNotificationRead: (
+    bookingId: number,
+    notificationKey: string,
+  ) =>
+    apiRequest<{
+      success: boolean;
+      unreadCount: number;
+    }>(
+      `/bookings/${bookingId}/notifications/${encodeURIComponent(notificationKey)}/read`,
+      {
+        method: 'POST',
+      },
     ),
 
   bookingAddOns: (

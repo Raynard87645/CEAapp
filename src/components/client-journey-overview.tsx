@@ -89,13 +89,13 @@ export function ClientJourneyOverview({
           icon="▥"
           label="Accommodation"
           value={journey.accommodation}
-          sub={journey.destination}
+          sub={journey.destination ?? '—'}
         />
         <SummaryCard
           style={styles.summaryCard}
           icon="▰"
           label="Private Vehicle"
-          value={journey.vehicle}
+          value={journey.vehicle ?? 'TBD'}
           sub="Dedicated throughout"
         />
         <SummaryCard

@@ -1,0 +1,15 @@
+export const DriverColors = {
+  green: '#123d31',
+  green2: '#1e5745',
+  ivory: '#f8f4ea',
+  paper: '#fffdf8',
+  gold: '#b9924f',
+  ink: '#19241f',
+  muted: '#6d7771',
+  line: '#e8e0cf',
+  ok: '#2f755c',
+  danger: '#a74f3c',
+  segmentBg: '#e8e2d5',
+  prepNote: '#f3ecd9',
+  attractionBg: '#f6f2e9',
+} as const;

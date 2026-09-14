@@ -1,23 +1,22 @@
-import { useMemo } from 'react';
 import { Tabs, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import type { AppRole, PlatformTab } from '@/constants/platforms';
+import { DriverColors } from '@/constants/driver-colors';
+import type { PlatformTab } from '@/constants/platforms';
 import { getPlatformHomeRoute } from '@/constants/platforms';
-import { Layout, Palette } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { resetToLanding } from '@/lib/navigation';
 
-type DesignTabBarProps = {
+type DriverTabBarProps = {
   state: { index: number; routes: Array<{ key: string; name: string }> };
   descriptors: Record<string, { options?: { title?: string } }>;
   navigation: { navigate: (name: string) => void };
   tabs: PlatformTab[];
 };
 
-function DesignTabBar({ state, descriptors, navigation, tabs }: DesignTabBarProps) {
+function DriverTabBar({ state, descriptors, navigation, tabs }: DriverTabBarProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -34,9 +33,7 @@ function DesignTabBar({ state, descriptors, navigation, tabs }: DesignTabBarProp
             accessibilityState={{ selected: focused }}
             onPress={() => navigation.navigate(route.name)}
             style={styles.tabButton}>
-            <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>
-              {tab?.icon ?? '•'}
-            </Text>
+            <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>{tab?.icon ?? '•'}</Text>
             <Text style={[styles.tabLabel, focused && styles.tabLabelFocused]}>{label}</Text>
             {focused ? <View style={styles.activeDash} /> : null}
           </Pressable>
@@ -46,20 +43,13 @@ function DesignTabBar({ state, descriptors, navigation, tabs }: DesignTabBarProp
   );
 }
 
-type PlatformTabLayoutProps = {
-  allowedRoles: AppRole[];
-  tabs?: PlatformTab[];
-  resolveTabs?: (role: AppRole | null) => PlatformTab[];
+type DriverTabLayoutProps = {
+  tabs: PlatformTab[];
 };
 
-export function PlatformTabLayout({ allowedRoles, tabs, resolveTabs }: PlatformTabLayoutProps) {
+export function DriverTabLayout({ tabs }: DriverTabLayoutProps) {
   const router = useRouter();
   const { role, isAuthenticated, isBootstrapping, hasCompletedWelcome } = useAuth();
-
-  const activeTabs = useMemo(
-    () => (resolveTabs ? resolveTabs(role) : tabs ?? []),
-    [resolveTabs, role, tabs],
-  );
 
   useEffect(() => {
     if (isBootstrapping) return;
@@ -74,19 +64,19 @@ export function PlatformTabLayout({ allowedRoles, tabs, resolveTabs }: PlatformT
       return;
     }
 
-    if (role && !allowedRoles.includes(role)) {
+    if (role && role !== 'driver') {
       router.replace(getPlatformHomeRoute(role));
     }
-  }, [allowedRoles, hasCompletedWelcome, isAuthenticated, isBootstrapping, role, router]);
+  }, [hasCompletedWelcome, isAuthenticated, isBootstrapping, role, router]);
 
   return (
     <Tabs
-      tabBar={(props) => <DesignTabBar {...props} tabs={activeTabs} />}
+      tabBar={(props) => <DriverTabBar {...props} tabs={tabs} />}
       screenOptions={{
         headerShown: false,
-        sceneStyle: { backgroundColor: Palette.cream },
+        sceneStyle: { backgroundColor: DriverColors.ivory },
       }}>
-      {activeTabs.map((tab) => (
+      {tabs.map((tab) => (
         <Tabs.Screen key={tab.name} name={tab.name} options={{ title: tab.title }} />
       ))}
     </Tabs>
@@ -96,57 +86,45 @@ export function PlatformTabLayout({ allowedRoles, tabs, resolveTabs }: PlatformT
 const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: Palette.paper,
+    backgroundColor: 'rgba(255,253,248,0.97)',
     borderTopWidth: 1,
-    borderTopColor: Palette.line,
-    minHeight: Layout.bottomNavHeight,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#0E3024',
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: -4 },
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
+    borderTopColor: DriverColors.line,
+    minHeight: Platform.OS === 'ios' ? 84 : 72,
+    paddingTop: 6,
   },
   tabButton: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 8,
     paddingBottom: 6,
-    gap: 4,
+    gap: 2,
   },
   tabIcon: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    color: Palette.muted,
+    color: '#858b87',
+    marginBottom: 2,
   },
   tabIconFocused: {
-    color: Palette.green,
-    fontSize: 19,
+    color: DriverColors.green,
+    fontSize: 21,
     fontWeight: '900',
   },
   tabLabel: {
-    fontSize: 8,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: Palette.muted,
-    fontWeight: '600',
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#858b87',
   },
   tabLabelFocused: {
-    color: Palette.green,
-    fontSize: 9,
+    color: DriverColors.green,
+    fontSize: 10,
     fontWeight: '900',
   },
   activeDash: {
     width: 28,
     height: 3,
     borderRadius: 2,
-    backgroundColor: Palette.green,
+    backgroundColor: DriverColors.green,
     marginTop: 2,
   },
 });

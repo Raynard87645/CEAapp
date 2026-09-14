@@ -103,9 +103,11 @@ export const PLATFORMS: Record<AppRole, PlatformConfig> = {
     homeRoute: '/(driver)',
     welcomeMessage: 'Preparing your driver workspace.',
     tabs: [
-      { name: 'index', label: 'Today', icon: '⌂', title: 'Today' },
-      { name: 'assignments', label: 'Trips', icon: '◷', title: 'Assignments' },
-      { name: 'messages', label: 'Messages', icon: '□', title: 'Messages' },
+      { name: 'index', label: 'Updates', icon: '◉', title: 'Updates' },
+      { name: 'trips', label: 'Trips', icon: '▤', title: 'Trips' },
+      { name: 'itinerary', label: 'Itinerary', icon: '⌁', title: 'Itinerary' },
+      { name: 'checkin', label: 'Check-In', icon: '✓', title: 'Check-In' },
+      { name: 'safety', label: 'Safety', icon: '◇', title: 'Safety' },
     ],
   },
 };
@@ -117,6 +119,29 @@ export function getPlatformConfig(role: AppRole | null | undefined): PlatformCon
 
 export function getPlatformHomeRoute(role: AppRole): PlatformConfig['homeRoute'] {
   return PLATFORMS[role].homeRoute;
+}
+
+export type DrawerLink = {
+  label: string;
+  icon: string;
+  href: string;
+  tabName: string;
+};
+
+export function getDrawerLinksForRole(role: AppRole | null | undefined): DrawerLink[] {
+  if (!role) return [];
+
+  const config = getPlatformConfig(role);
+  if (!config) return [];
+
+  const tabs = role === 'host' ? getJourneyTabsForRole('host') : config.tabs;
+
+  return tabs.map((tab) => ({
+    label: tab.label,
+    icon: tab.icon,
+    tabName: tab.name,
+    href: tab.name === 'index' ? config.homeRoute : `${config.homeRoute}/${tab.name}`,
+  }));
 }
 
 export function isAppRole(value: string | null | undefined): value is AppRole {

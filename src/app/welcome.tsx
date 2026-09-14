@@ -9,6 +9,7 @@ import { EyebrowText, SerifTitle } from '@/components/ui/typography';
 import { getPlatformConfig, getPlatformHomeRoute } from '@/constants/platforms';
 import { Palette, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
+import { resetToLanding } from '@/lib/navigation';
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function WelcomeScreen() {
     if (isBootstrapping) return;
 
     if (!isAuthenticated || !role) {
-      router.replace('/');
+      resetToLanding();
       return;
     }
 
@@ -113,6 +114,7 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: 'center',
+    color: Palette.white,
   },
   subtitle: {
     textAlign: 'center',

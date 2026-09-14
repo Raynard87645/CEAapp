@@ -1,86 +1,89 @@
 import * as ImagePicker from 'expo-image-picker';
 import {
   createContext,
+  useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react';
 
-import {
-  ADDONS,
-  INITIAL_UPDATES,
-  type Addon,
-  type Update,
-} from '@/constants/mock-data';
-import { useUpdatesState } from '@/hooks/use-journey-state';
+import { useAuth } from '@/context/auth-context';
+import { api } from '@/services/api/client';
+import type { UpdateItem } from '@/services/api/types';
 
 type JourneyContextValue = {
-  updates: Update[];
-  addons: Addon[];
-  highlightId: number | null;
+  updates: UpdateItem[];
+  highlightId: string | null;
   avatarUri: string | null;
   unreadCount: number;
-  markRead: (id: number) => void;
-  addUpdate: (message: string, kind: string, from?: string) => void;
-  requestAddon: (id: number) => void;
-  confirmPayment: (id: number) => void;
+  refreshUpdates: () => Promise<void>;
+  markRead: (id: string) => Promise<void>;
   pickAvatar: () => Promise<void>;
 };
 
 const JourneyContext = createContext<JourneyContextValue | null>(null);
 
 export function JourneyProvider({ children }: { children: ReactNode }) {
-  const {
-    updates,
-    unreadCount,
-    highlightId,
-    markRead,
-    addUpdate,
-  } = useUpdatesState(INITIAL_UPDATES ?? []);
+  const { bookingId, role } = useAuth();
+  const isBookingClient = role === 'client' && bookingId != null;
 
-  const [addons, setAddons] = useState<Addon[]>(ADDONS ?? []);
+  const [updates, setUpdates] = useState<UpdateItem[]>([]);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
 
-  const requestAddon = (id: number) => {
-    setAddons((current) =>
-      current.map((addon) =>
-        addon.id === id
-          ? {
-              ...addon,
-              status: 'Processing',
-            }
-          : addon,
-      ),
-    );
+  const refreshUpdates = useCallback(async () => {
+    if (!isBookingClient || !bookingId) {
+      setUpdates([]);
+      return;
+    }
 
-    addUpdate(
-      'Your add-on request is being reviewed by your CEA.',
-      'Add-on request update',
-    );
-  };
+    try {
+      const response = await api.bookingNotifications(bookingId);
+      setUpdates(response.updates ?? []);
+    } catch {
+      setUpdates([]);
+    }
+  }, [bookingId, isBookingClient]);
 
-  const confirmPayment = (id: number) => {
-    setAddons((current) =>
-      current.map((addon) =>
-        addon.id === id
-          ? {
-              ...addon,
-              status: 'Confirmed',
-            }
-          : addon,
-      ),
-    );
+  useEffect(() => {
+    void refreshUpdates();
+  }, [refreshUpdates]);
 
-    addUpdate(
-      'Your add-on payment is confirmed.',
-      'Payment confirmed',
-    );
-  };
+  const markRead = useCallback(
+    async (id: string) => {
+      setUpdates((current) =>
+        current.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                unread: false,
+              }
+            : item,
+        ),
+      );
+
+      setHighlightId(id);
+
+      if (isBookingClient && bookingId) {
+        try {
+          await api.markBookingNotificationRead(bookingId, id);
+          await refreshUpdates();
+        } catch {
+          // Keep optimistic read state if the server is unreachable.
+        }
+      }
+
+      setTimeout(() => {
+        setHighlightId(null);
+      }, 2200);
+    },
+    [bookingId, isBookingClient, refreshUpdates],
+  );
 
   const pickAvatar = async () => {
-    const permission =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
       return;
@@ -98,35 +101,25 @@ export function JourneyProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const unreadCount = useMemo(
+    () => updates.filter((item) => item.unread).length,
+    [updates],
+  );
+
   const value = useMemo<JourneyContextValue>(
     () => ({
       updates,
-      addons,
       highlightId,
       avatarUri,
       unreadCount,
+      refreshUpdates,
       markRead,
-      addUpdate,
-      requestAddon,
-      confirmPayment,
       pickAvatar,
     }),
-    [
-      updates,
-      addons,
-      highlightId,
-      avatarUri,
-      unreadCount,
-      markRead,
-      addUpdate,
-    ],
+    [updates, highlightId, avatarUri, unreadCount, refreshUpdates, markRead],
   );
 
-  return (
-    <JourneyContext.Provider value={value}>
-      {children}
-    </JourneyContext.Provider>
-  );
+  return <JourneyContext.Provider value={value}>{children}</JourneyContext.Provider>;
 }
 
 export function useJourney() {

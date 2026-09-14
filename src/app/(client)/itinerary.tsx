@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 
 export default function ItineraryScreen() {
-  const { updates, avatarUri, markRead, pickAvatar } = useJourney();
+  const { avatarUri, pickAvatar } = useJourney();
   const { bookingId, fullName } = useAuth();
 
   const [viewMode, setViewMode] = useState<'full' | 'day'>('full');
@@ -50,7 +50,7 @@ export default function ItineraryScreen() {
 
         const [bookingResponse, itineraryResponse] = await Promise.all([
           api.bookingOverview(bookingId),
-          api.itinerary(),
+          api.bookingItinerary(bookingId),
         ]);
 
         if (!active) {
@@ -96,12 +96,7 @@ export default function ItineraryScreen() {
 
   return (
     <View style={styles.screen}>
-      <AppHeader
-        updates={updates}
-        avatarUri={avatarUri}
-        onAvatarPress={pickAvatar}
-        onNotificationPress={markRead}
-      />
+      <AppHeader avatarUri={avatarUri} onAvatarPress={pickAvatar} />
 
       {loading ? (
         <View style={styles.loadingState}>

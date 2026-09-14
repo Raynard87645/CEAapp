@@ -43,12 +43,7 @@ function ClientAddonsScreen({
 }) {
   const { bookingId } = useAuth();
 
-  const {
-    updates,
-    avatarUri,
-    markRead,
-    pickAvatar,
-  } = useJourney();
+  const { avatarUri, pickAvatar, refreshUpdates } = useJourney();
 
   const [addons, setAddons] = useState<AddOnItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,6 +128,7 @@ function ClientAddonsScreen({
       );
 
       await loadAddOns();
+      await refreshUpdates();
     } catch (error) {
       console.error(error);
 
@@ -173,6 +169,7 @@ function ClientAddonsScreen({
       setCustomSent(true);
 
       await loadAddOns();
+      await refreshUpdates();
 
       setTimeout(() => {
         setCustomSent(false);
@@ -210,12 +207,7 @@ function ClientAddonsScreen({
 
   return (
     <View style={styles.screen}>
-      <AppHeader
-        updates={updates}
-        avatarUri={avatarUri}
-        onAvatarPress={pickAvatar}
-        onNotificationPress={markRead}
-      />
+      <AppHeader avatarUri={avatarUri} onAvatarPress={pickAvatar} />
 
       <ScrollView
         contentContainerStyle={styles.content}

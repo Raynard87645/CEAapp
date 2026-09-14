@@ -11,6 +11,7 @@ import {
 
 import { AddonsCatalog } from '@/components/addons-catalog';
 import { BrandHeader } from '@/components/brand-header';
+import { DrawerMenuButton } from '@/components/drawer-menu-button';
 import { Fonts, Layout, Palette, Spacing } from '@/constants/theme';
 import { api } from '@/services/api/client';
 import type { AddOnItem, BookingListItem, JourneySummary } from '@/services/api/types';
@@ -164,6 +165,7 @@ export function CepAddonsScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
+        <DrawerMenuButton />
         <BrandHeader compact />
       </View>
 
@@ -219,7 +221,9 @@ const styles = StyleSheet.create({
     borderBottomColor: Palette.line,
     height: Layout.headerHeight,
     paddingHorizontal: 18,
-    justifyContent: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   content: {
     paddingHorizontal: 18,

@@ -6,11 +6,11 @@ import { Fonts, Layout, Palette, Spacing } from '@/constants/theme';
 import { useJourney } from '@/context/journey-context';
 
 export default function UpdatesScreen() {
-  const { updates, highlightId, avatarUri, markRead, pickAvatar } = useJourney();
+  const { updates, highlightId, avatarUri, pickAvatar } = useJourney();
 
   return (
     <View style={styles.screen}>
-      <AppHeader updates={updates} avatarUri={avatarUri} onAvatarPress={pickAvatar} onNotificationPress={markRead} />
+      <AppHeader avatarUri={avatarUri} onAvatarPress={pickAvatar} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.head}>
@@ -24,26 +24,36 @@ export default function UpdatesScreen() {
         </View>
 
         <View style={styles.list}>
-          {updates.map((update) => (
-            <View
-              key={update.id}
-              style={[
-                styles.item,
-                update.unread && styles.itemUnread,
-                highlightId === update.id && styles.itemHighlight,
-              ]}>
-              <View style={[styles.dot, update.unread && styles.dotUnread]} />
-              <View style={styles.itemContent}>
-                <View style={styles.itemTop}>
-                  <Text style={styles.itemFromLabel}>FROM</Text>
-                  <Text style={styles.itemTime}>{update.time}</Text>
-                </View>
-                <Text style={styles.itemFrom}>{update.from}</Text>
-                <Text style={styles.itemKind}>{update.kind}</Text>
-                <Text style={styles.itemMessage}>{update.message}</Text>
-              </View>
+          {updates.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No updates yet</Text>
+              <Text style={styles.emptyText}>
+                Booking messages, add-on updates, and service alerts for your trip will appear
+                here.
+              </Text>
             </View>
-          ))}
+          ) : (
+            updates.map((update) => (
+              <View
+                key={update.id}
+                style={[
+                  styles.item,
+                  update.unread && styles.itemUnread,
+                  highlightId === update.id && styles.itemHighlight,
+                ]}>
+                <View style={[styles.dot, update.unread && styles.dotUnread]} />
+                <View style={styles.itemContent}>
+                  <View style={styles.itemTop}>
+                    <Text style={styles.itemFromLabel}>FROM</Text>
+                    <Text style={styles.itemTime}>{update.time}</Text>
+                  </View>
+                  <Text style={styles.itemFrom}>{update.from}</Text>
+                  <Text style={styles.itemKind}>{update.kind}</Text>
+                  <Text style={styles.itemMessage}>{update.message}</Text>
+                </View>
+              </View>
+            ))
+          )}
         </View>
       </ScrollView>
     </View>
@@ -141,5 +151,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#59655E',
     lineHeight: 16,
+  },
+  emptyState: {
+    backgroundColor: Palette.white,
+    borderWidth: 1,
+    borderColor: Palette.line,
+    padding: 24,
+    gap: 8,
+  },
+  emptyTitle: {
+    fontFamily: Fonts.serif,
+    fontSize: 18,
+    color: Palette.ink,
+  },
+  emptyText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: Palette.muted,
   },
 });

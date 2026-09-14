@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -26,16 +26,60 @@ import {
 import { useAuth } from '@/context/auth-context';
 import { useJourney } from '@/context/journey-context';
 import { api } from '@/services/api/client';
+import type { JourneySummary } from '@/services/api/types';
+
+function initialsFromName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) {
+    return 'CEA';
+  }
+
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
+}
 
 export default function MessagesScreen() {
-  const {
-    updates,
-    avatarUri,
-    markRead,
-    pickAvatar,
-  } = useJourney();
+  const { avatarUri, pickAvatar, refreshUpdates } = useJourney();
 
   const { bookingId } = useAuth();
+
+  const [journey, setJourney] = useState<JourneySummary | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadJourney() {
+      if (!bookingId) {
+        if (active) {
+          setJourney(null);
+        }
+        return;
+      }
+
+      try {
+        const response = await api.bookingOverview(bookingId);
+        if (active) {
+          setJourney(response.journey);
+        }
+      } catch {
+        if (active) {
+          setJourney(null);
+        }
+      }
+    }
+
+    void loadJourney();
+
+    return () => {
+      active = false;
+    };
+  }, [bookingId]);
+
+  const ceaName = journey?.ceaName ?? 'Your CEA';
+  const ceaInitials = useMemo(() => initialsFromName(ceaName), [ceaName]);
 
   const [selectedOption, setSelectedOption] =
     useState<string>(MESSAGE_QUICK_OPTIONS[0]);
@@ -81,6 +125,8 @@ export default function MessagesScreen() {
         },
       );
 
+      await refreshUpdates();
+
       setMessage('');
       setSent(true);
 
@@ -104,12 +150,7 @@ export default function MessagesScreen() {
 
   return (
     <View style={styles.screen}>
-      <AppHeader
-        updates={updates}
-        avatarUri={avatarUri}
-        onAvatarPress={pickAvatar}
-        onNotificationPress={markRead}
-      />
+      <AppHeader avatarUri={avatarUri} onAvatarPress={pickAvatar} />
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -123,7 +164,7 @@ export default function MessagesScreen() {
           <SerifTitle size="page">
             Message{' '}
             <Text style={styles.accent}>
-              Alicia
+              {journey?.ceaName?.split(' ')[0] ?? 'your CEA'}
             </Text>
           </SerifTitle>
 
@@ -136,7 +177,7 @@ export default function MessagesScreen() {
         <View style={styles.ceaCard}>
           <View style={styles.ceaAvatar}>
             <Text style={styles.ceaInitials}>
-              AB
+              {ceaInitials}
             </Text>
           </View>
 
@@ -146,7 +187,7 @@ export default function MessagesScreen() {
             </Text>
 
             <Text style={styles.ceaName}>
-              Alicia Brown
+              {ceaName}
             </Text>
 
             <Text style={styles.ceaRole}>
@@ -210,7 +251,7 @@ export default function MessagesScreen() {
           <TextInput
             value={message}
             onChangeText={setMessage}
-            placeholder="Add a note for Alicia…"
+            placeholder={`Add a note for ${journey?.ceaName?.split(' ')[0] ?? 'your CEA'}…`}
             placeholderTextColor={
               Palette.muted
             }

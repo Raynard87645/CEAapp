@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 
+import { getApiBaseUrl } from '@/config/api';
 import { api, getAuthToken, setAuthToken } from '@/services/api/client';
 import type { UserRole } from '@/services/api/types';
 import { normalizeAppRole } from '@/constants/platforms';
@@ -125,21 +126,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    try {
-      await api.logout();
-    } catch {
-      // Clear local session even if the server is unreachable.
-    } finally {
-      await setAuthToken(null);
-      setRole(null);
-      setFirstName('');
-      setFullName('');
-      setBookingId(null);
-      setRoleLabel('');
-      setPlatformLabel('');
-      setPrimaryRole(null);
-      setHasCompletedWelcome(false);
+    const token = await getAuthToken();
+
+    await setAuthToken(null);
+    setRole(null);
+    setFirstName('');
+    setFullName('');
+    setBookingId(null);
+    setRoleLabel('');
+    setPlatformLabel('');
+    setPrimaryRole(null);
+    setHasCompletedWelcome(false);
+
+    if (!token) {
+      return;
     }
+
+    void fetch(`${getApiBaseUrl()}/logout`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    }).catch(() => {
+      // Server logout is best-effort after the local session is cleared.
+    });
   }, []);
 
   const value = useMemo<AuthContextValue>(

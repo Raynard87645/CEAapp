@@ -26,7 +26,7 @@ function ClientHomeScreen() {
   const router = useRouter();
 
   const { bookingId } = useAuth();
-  const { updates, avatarUri, markRead, pickAvatar } = useJourney();
+  const { avatarUri, pickAvatar } = useJourney();
 
   const [journey, setJourney] = useState<JourneySummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,15 +78,7 @@ function ClientHomeScreen() {
 
   return (
     <View style={styles.screen}>
-      <AppHeader
-        updates={updates}
-        avatarUri={avatarUri}
-        onAvatarPress={pickAvatar}
-        onNotificationPress={(id) => {
-          markRead(id);
-          router.navigate('/updates');
-        }}
-      />
+      <AppHeader avatarUri={avatarUri} onAvatarPress={pickAvatar} />
 
       {loading ? (
         <View style={styles.center}>
