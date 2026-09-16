@@ -193,25 +193,6 @@ export const api = {
       itinerary: import('@/services/api/types').ItineraryEvent[];
     }>(`/bookings/${bookingId}/itinerary`),
 
-  bookingNotifications: (bookingId: number) =>
-    apiRequest<{
-      updates: import('@/services/api/types').UpdateItem[];
-      unreadCount: number;
-    }>(`/bookings/${bookingId}/notifications`),
-
-  markBookingNotificationRead: (
-    bookingId: number,
-    notificationKey: string,
-  ) =>
-    apiRequest<{
-      success: boolean;
-      unreadCount: number;
-    }>(
-      `/bookings/${bookingId}/notifications/${encodeURIComponent(notificationKey)}/read`,
-      {
-        method: 'POST',
-      },
-    ),
 
   bookingAddOns: (
     bookingId: number,
