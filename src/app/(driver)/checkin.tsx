@@ -19,6 +19,7 @@ import {
   type DriverShiftState,
   type TripCompletionState,
 } from '@/services/api/driver';
+import { formatShiftTimestamp } from '@/utils/driver-trip-details';
 
 export default function DriverCheckInScreen() {
   const { dashboard } = useDriver();
@@ -156,11 +157,17 @@ export default function DriverCheckInScreen() {
 
       setTripCompletion({
         requested_at:
-          response.trip.trip_completion_requested_at ?? null,
+          response.trip_completion?.requested_at ??
+          response.trip.trip_completion_requested_at ??
+          null,
         approved_at:
-          response.trip.trip_completion_approved_at ?? null,
+          response.trip_completion?.approved_at ??
+          response.trip.trip_completion_approved_at ??
+          null,
         completed_at:
-          response.trip.completed_at ?? null,
+          response.trip_completion?.completed_at ??
+          response.trip.completed_at ??
+          null,
       });
 
       Alert.alert(
@@ -180,24 +187,7 @@ export default function DriverCheckInScreen() {
     }
   };
 
-  const formatShiftTime = (value?: string | null) => {
-    if (!value) {
-      return null;
-    }
-
-    const match = value.match(/(?:T|\s)(\d{2}):(\d{2})/);
-
-    if (!match) {
-      return null;
-    }
-
-    const hours = Number(match[1]);
-    const minutes = match[2];
-    const period = hours >= 12 ? 'PM' : 'AM';
-    const displayHours = hours % 12 || 12;
-
-    return `${displayHours}:${minutes} ${period}`;
-  };
+  const formatShiftTime = formatShiftTimestamp;
 
   const isCheckpointConfirmed = (checkpoint: Checkpoint) => {
     if (checkpoint.key === 'start_shift') {
@@ -247,9 +237,11 @@ export default function DriverCheckInScreen() {
       if (shift?.checked_in_at) {
         const time = formatShiftTime(shift.checked_in_at);
 
-        return time
-          ? `Checked in at ${time}`
-          : 'Checked in';
+        return time ? `Checked in at ${time}` : 'Checked in';
+      }
+
+      if (shift?.check_in_approved_at && !shift?.checked_in_at) {
+        return 'Check-in approved — awaiting FTS confirmation';
       }
 
       if (shift?.check_in_requested_at) {
@@ -263,9 +255,11 @@ export default function DriverCheckInScreen() {
       if (shift?.checked_out_at) {
         const time = formatShiftTime(shift.checked_out_at);
 
-        return time
-          ? `Checked out at ${time}`
-          : 'Checked out';
+        return time ? `Checked out at ${time}` : 'Checked out';
+      }
+
+      if (shift?.check_out_approved_at && !shift?.checked_out_at) {
+        return 'Check-out approved — awaiting FTS confirmation';
       }
 
       if (shift?.check_out_requested_at) {
@@ -293,8 +287,24 @@ export default function DriverCheckInScreen() {
     isDepartureDay &&
     Boolean(shift?.checked_out_at);
 
-  const endTripRequested =
-    Boolean(tripCompletion?.requested_at);
+  const endTripRequested = Boolean(tripCompletion?.requested_at);
+  const endTripCompleted = Boolean(tripCompletion?.completed_at);
+
+  const shiftSummary = shift
+    ? [
+        shift.tripCode ? `Trip ${shift.tripCode}` : null,
+        shift.day_type ? `${shift.day_type}${shift.date ? ` · ${shift.date}` : ''}` : null,
+        shift.status ? `Shift ${shift.status}` : null,
+        shift.window_opens_at
+          ? `Check-in window opens ${formatShiftTime(shift.window_opens_at) ?? '—'}`
+          : null,
+        shift.required_check_in_at
+          ? `Required check-in ${formatShiftTime(shift.required_check_in_at) ?? '—'}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : null;
 
   return (
     <DriverScreenShell>
@@ -304,10 +314,20 @@ export default function DriverCheckInScreen() {
             <Eyebrow>Movement log</Eyebrow>
             <PageTitle
               title="Check-In"
-              subtitle="Complete each checkpoint as the movement progresses."
+              subtitle={
+                dashboard?.activeTrip?.tripCode
+                  ? `${dashboard.activeTrip.tripCode} · ${dashboard.activeTrip.routeLabel ?? ''}`
+                  : 'Complete each checkpoint as the movement progresses.'
+              }
             />
           </View>
         </View>
+
+        {shiftSummary ? (
+          <Card>
+            <Text style={styles.shiftSummary}>{shiftSummary}</Text>
+          </Card>
+        ) : null}
 
         <Card>
           {loading ? (
@@ -380,7 +400,8 @@ export default function DriverCheckInScreen() {
                     ]}
                     disabled={
                       Boolean(submitting) ||
-                      endTripRequested
+                      endTripRequested ||
+                      endTripCompleted
                     }
                     onPress={handleEndTrip}>
                     {submitting === 'end_trip' ? (
@@ -388,7 +409,7 @@ export default function DriverCheckInScreen() {
                         size="small"
                         color={DriverColors.green}
                       />
-                    ) : tripCompletion?.approved_at ? (
+                    ) : tripCompletion?.completed_at || tripCompletion?.approved_at ? (
                       <Text style={styles.toggleMark}>
                         ✓
                       </Text>
@@ -403,9 +424,13 @@ export default function DriverCheckInScreen() {
                     <Text style={styles.small}>
                       {submitting === 'end_trip'
                         ? 'Sending end trip request...'
-                        : endTripRequested
-                          ? 'Awaiting FTS approval'
-                          : 'Request trip completion from FTS'}
+                        : endTripCompleted
+                          ? 'Trip completed'
+                          : tripCompletion?.approved_at
+                            ? 'End trip approved by FTS'
+                            : endTripRequested
+                              ? 'Awaiting FTS approval'
+                              : 'Request trip completion from FTS'}
                     </Text>
                   </View>
                 </View>
@@ -425,6 +450,12 @@ export default function DriverCheckInScreen() {
 const styles = StyleSheet.create({
   head: {
     marginBottom: 16,
+  },
+  shiftSummary: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: DriverColors.ink,
+    fontWeight: '600',
   },
   item: {
     flexDirection: 'row',

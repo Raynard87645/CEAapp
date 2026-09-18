@@ -15,20 +15,35 @@ import { Card, DetailGrid, Eyebrow, PageTitle, Pill } from '@/components/driver/
 import { DriverColors } from '@/constants/driver-colors';
 import { useDriver } from '@/context/driver-context';
 import { driverApi, type TripSummary } from '@/services/api/driver';
+import { coreTripDetails, ftsServiceDetails } from '@/utils/driver-trip-details';
 
-function tripDetails(trip: TripSummary) {
-  return [
-    { label: 'Experience Level', value: trip.experienceLevel },
-    { label: 'Trip Status', value: trip.status },
-    { label: 'Arrival Date', value: trip.arrivalDate ?? '—' },
-    { label: 'Arrival Time', value: trip.arrivalTime ?? '—' },
-    { label: 'Pickup Time', value: trip.pickupTime ?? '—' },
-    { label: 'Pickup Location', value: trip.pickupLocation ?? '—' },
-    { label: 'Arrival Airport', value: trip.arrivalAirport ?? '—' },
-    { label: 'Accommodation', value: trip.accommodation ?? '—' },
-    { label: 'Vehicle Selection', value: trip.vehicle ?? '—' },
-    { label: 'CEA Contact', value: trip.ceaContact ?? '—' },
-  ];
+function TripCard({ trip }: { trip: TripSummary }) {
+  return (
+    <Card>
+      <View style={styles.cardHead}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.cardTitle}>{trip.clientName}</Text>
+          <Text style={styles.tripCode}>{trip.tripCode}</Text>
+        </View>
+        <Pill tone="gold">{trip.status.toUpperCase()}</Pill>
+      </View>
+
+      <DetailGrid items={coreTripDetails(trip)} />
+      <DetailGrid items={ftsServiceDetails(trip)} />
+
+      <View style={styles.prepNote}>
+        <Text style={styles.prepTitle}>Pickup preparation</Text>
+        <Text style={styles.prepBody}>
+          {trip.prepNote ??
+            'Montego Bay: 1 hour before arrival · Kingston: 4 hours before arrival for vehicle, kit, beverage and punctuality checks.'}
+        </Text>
+      </View>
+
+      <Pressable style={styles.primaryBtn} onPress={() => router.push('/(driver)/itinerary')}>
+        <Text style={styles.primaryText}>View Itinerary</Text>
+      </Pressable>
+    </Card>
+  );
 }
 
 export default function DriverTripsScreen() {
@@ -53,7 +68,7 @@ export default function DriverTripsScreen() {
     void load();
   }, [load]);
 
-  const activeTrip = trips[0] ?? dashboard?.activeTrip;
+  const visibleTrips = trips.length ? trips : dashboard?.activeTrip ? [dashboard.activeTrip] : [];
 
   return (
     <DriverScreenShell>
@@ -63,26 +78,13 @@ export default function DriverTripsScreen() {
             <Eyebrow>Assigned movements</Eyebrow>
             <PageTitle title="Trips" subtitle="Read-only trip details from FTS" />
           </View>
-          <Pill tone="gold">ASSIGNED</Pill>
+          <Pill tone="gold">{visibleTrips.length ? `${visibleTrips.length} ACTIVE` : 'NONE'}</Pill>
         </View>
 
         {loading ? (
           <ActivityIndicator color={DriverColors.green} />
-        ) : activeTrip ? (
-          <Card>
-            <Text style={styles.cardTitle}>{activeTrip.clientName}</Text>
-            <DetailGrid items={tripDetails(activeTrip)} />
-            <View style={styles.prepNote}>
-              <Text style={styles.prepTitle}>Pickup preparation</Text>
-              <Text style={styles.prepBody}>
-                {activeTrip.prepNote ??
-                  'Montego Bay: 1 hour before arrival · Kingston: 4 hours before arrival for vehicle, kit, beverage and punctuality checks.'}
-              </Text>
-            </View>
-            <Pressable style={styles.primaryBtn} onPress={() => router.push('/(driver)/itinerary')}>
-              <Text style={styles.primaryText}>View Itinerary</Text>
-            </Pressable>
-          </Card>
+        ) : visibleTrips.length ? (
+          visibleTrips.map((trip) => <TripCard key={trip.id} trip={trip} />)
         ) : (
           <Card>
             <Text style={styles.empty}>No trips assigned yet.</Text>
@@ -100,11 +102,23 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     marginBottom: 16,
   },
+  cardHead: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 12,
+  },
   cardTitle: {
     fontSize: 19,
     fontWeight: '600',
     color: DriverColors.ink,
-    marginBottom: 12,
+  },
+  tripCode: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '700',
+    color: DriverColors.gold,
+    letterSpacing: 0.4,
   },
   prepNote: {
     backgroundColor: DriverColors.prepNote,

@@ -15,11 +15,14 @@ import {
 import { DriverScreenShell } from '@/components/driver/top-bar';
 import { Card, Eyebrow, PageTitle, Pill } from '@/components/driver/ui';
 import { DriverColors } from '@/constants/driver-colors';
+import { useDriver } from '@/context/driver-context';
 import { driverApi, type StatusUpdate } from '@/services/api/driver';
 
 export default function DriverUpdatesScreen() {
+  const { dashboard } = useDriver();
   const [updates, setUpdates] = useState<StatusUpdate[]>([]);
   const [message, setMessage] = useState('');
+  const [location, setLocation] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -63,10 +66,12 @@ export default function DriverUpdatesScreen() {
     try {
       const response = await driverApi.postUpdate({
         message: message.trim(),
+        location: location.trim(),
         photoUri,
       });
       setUpdates((current) => [response.update, ...current]);
       setMessage('');
+      setLocation('');
       setPhotoUri(null);
       Alert.alert('Update sent to FTS');
     } catch (error) {
@@ -82,7 +87,14 @@ export default function DriverUpdatesScreen() {
         <View style={styles.head}>
           <View>
             <Eyebrow>Live activity</Eyebrow>
-            <PageTitle title="What's happening?" />
+            <PageTitle
+              title="What's happening?"
+              subtitle={
+                dashboard?.activeTrip?.tripCode
+                  ? `${dashboard.activeTrip.tripCode} · ${dashboard.activeTrip.clientName}`
+                  : undefined
+              }
+            />
           </View>
           <Pill>● ONLINE</Pill>
         </View>
@@ -95,6 +107,13 @@ export default function DriverUpdatesScreen() {
             placeholderTextColor={DriverColors.muted}
             value={message}
             onChangeText={setMessage}
+          />
+          <TextInput
+            style={styles.locationInput}
+            placeholder="Location (optional)"
+            placeholderTextColor={DriverColors.muted}
+            value={location}
+            onChangeText={setLocation}
           />
           {photoUri ? <Image source={{ uri: photoUri }} style={styles.preview} /> : null}
           <View style={styles.actions}>
@@ -122,6 +141,14 @@ export default function DriverUpdatesScreen() {
               <View style={styles.feedLine} />
               <View style={styles.feedBody}>
                 <Text style={styles.feedMessage}>{update.message}</Text>
+                {update.location ? (
+                  <Text style={styles.feedMeta}>📍 {update.location}</Text>
+                ) : null}
+                {update.tripCode || update.vehicleName ? (
+                  <Text style={styles.feedMeta}>
+                    {[update.tripCode, update.vehicleName].filter(Boolean).join(' · ')}
+                  </Text>
+                ) : null}
                 {update.photoUrl ? (
                   <Image source={{ uri: update.photoUrl }} style={styles.feedPhoto} />
                 ) : null}
@@ -153,6 +180,16 @@ const styles = StyleSheet.create({
     padding: 13,
     backgroundColor: '#fff',
     textAlignVertical: 'top',
+    color: DriverColors.ink,
+  },
+  locationInput: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: DriverColors.line,
+    borderRadius: 13,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+    backgroundColor: '#fff',
     color: DriverColors.ink,
   },
   preview: {
@@ -211,7 +248,12 @@ const styles = StyleSheet.create({
   feedMessage: {
     fontWeight: '700',
     color: DriverColors.ink,
-    marginBottom: 10,
+    marginBottom: 6,
+  },
+  feedMeta: {
+    color: DriverColors.muted,
+    fontSize: 12,
+    marginBottom: 8,
   },
   feedPhoto: {
     width: '100%',

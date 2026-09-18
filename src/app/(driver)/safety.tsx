@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,21 +16,25 @@ import { DriverScreenShell } from '@/components/driver/top-bar';
 import { Card, Eyebrow, PageTitle, Pill } from '@/components/driver/ui';
 import { DriverColors } from '@/constants/driver-colors';
 import { useDriver } from '@/context/driver-context';
-import { driverApi, type SafetyItem } from '@/services/api/driver';
+import { driverApi, type DriverReport, type SafetyItem } from '@/services/api/driver';
 
 export default function DriverSafetyScreen() {
   const { dashboard } = useDriver();
   const tripId = dashboard?.activeTrip?.id;
   const [checklist, setChecklist] = useState<Record<string, SafetyItem[]>>({});
   const [reportTypes, setReportTypes] = useState<string[]>([]);
-  const [reports, setReports] = useState<
-    Array<{ id: number; type: string; description: string; timeLabel?: string }>
-  >([]);
+  const [reports, setReports] = useState<DriverReport[]>([]);
   const [reportType, setReportType] = useState('General Issue');
   const [reportNotes, setReportNotes] = useState('');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const checklistComplete = useMemo(
+    () =>
+      Object.values(checklist).every((items) => items.every((item) => item.confirmed)),
+    [checklist],
+  );
 
   const load = useCallback(async () => {
     if (!tripId) {
@@ -95,15 +99,7 @@ export default function DriverSafetyScreen() {
         description: reportNotes.trim(),
         photoUri,
       });
-      setReports((current) => [
-        {
-          id: response.report.id,
-          type: response.report.type,
-          description: response.report.description,
-          timeLabel: 'Just now',
-        },
-        ...current,
-      ]);
+      setReports((current) => [response.report, ...current]);
       setReportNotes('');
       setPhotoUri(null);
       Alert.alert('Safety report sent to FTS');
@@ -120,9 +116,12 @@ export default function DriverSafetyScreen() {
         <View style={styles.head}>
           <View>
             <Eyebrow>Driver readiness</Eyebrow>
-            <PageTitle title="Safety Check" />
+            <PageTitle
+              title="Safety Check"
+              subtitle={dashboard?.activeTrip?.tripCode ?? undefined}
+            />
           </View>
-          <Pill>PRE-TRIP</Pill>
+          <Pill>{checklistComplete ? 'READY' : 'PRE-TRIP'}</Pill>
         </View>
 
         {loading ? (
@@ -144,21 +143,7 @@ export default function DriverSafetyScreen() {
               </Card>
             </View>
           ))
-
-          
         )}
-        <View style={styles.actions}>
-            <Pressable
-              style={[styles.submitBtn, submitting && styles.disabled]}
-              onPress={handleSubmit}
-              disabled={submitting}>
-              {submitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.submitText}>Safety Check Done</Text>
-              )}
-            </Pressable>
-          </View>
 
         <Text style={styles.sectionLabel}>Issue Report</Text>
         <Card>
@@ -207,8 +192,14 @@ export default function DriverSafetyScreen() {
 
         {reports.map((report) => (
           <Card key={report.id} style={styles.reportCard}>
-            <Pill tone="gold">{report.type}</Pill>
+            <View style={styles.reportHead}>
+              <Pill tone="gold">{report.type}</Pill>
+              {report.status ? <Text style={styles.reportStatus}>{report.status}</Text> : null}
+            </View>
             <Text style={styles.reportBody}>{report.description}</Text>
+            {report.photoUrl ? (
+              <Image source={{ uri: report.photoUrl }} style={styles.preview} />
+            ) : null}
             <View style={styles.meta}>
               <Text style={styles.metaText}>{report.timeLabel ?? 'Just now'}</Text>
               <Text style={styles.metaText}>✓ Sent to FTS</Text>
@@ -347,6 +338,18 @@ const styles = StyleSheet.create({
   reportCard: {
     borderLeftWidth: 4,
     borderLeftColor: DriverColors.gold,
+  },
+  reportHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  reportStatus: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: DriverColors.muted,
+    textTransform: 'uppercase',
   },
   reportBody: {
     marginTop: 10,

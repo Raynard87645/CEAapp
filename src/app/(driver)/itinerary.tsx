@@ -14,23 +14,7 @@ import { Card, DetailGrid, Eyebrow, PageTitle, Pill } from '@/components/driver/
 import { DriverColors } from '@/constants/driver-colors';
 import { useDriver } from '@/context/driver-context';
 import { driverApi, type ItineraryDay, type TripSummary } from '@/services/api/driver';
-
-function bookingDetails(trip: TripSummary) {
-  return [
-    { label: 'Client Name', value: trip.clientName },
-    { label: 'Experience Level', value: trip.experienceLevel },
-    { label: 'Number of Guests', value: `${trip.guestCount ?? 0} guests` },
-    { label: 'Vehicle Selection', value: trip.vehicle ?? '—' },
-    { label: 'Accommodation', value: trip.accommodation ?? '—' },
-    { label: 'Arrival Date', value: trip.arrivalDate ?? '—' },
-    { label: 'Arrival Time', value: trip.arrivalTime ?? '—' },
-    { label: 'Arrival Airport', value: trip.arrivalAirport ?? '—' },
-    { label: 'Departure Date', value: trip.departureDate ?? '—' },
-    { label: 'Departure Time', value: trip.departureTime ?? '—' },
-    { label: 'Departure Airport', value: trip.arrivalAirport ?? '—' },
-    { label: 'CEA Contact', value: trip.ceaContact ?? '—' },
-  ];
-}
+import { bookingTripDetails } from '@/utils/driver-trip-details';
 
 function DayCard({ day, initiallyOpen }: { day: ItineraryDay; initiallyOpen?: boolean }) {
   const [open, setOpen] = useState(initiallyOpen ?? false);
@@ -77,6 +61,11 @@ function DayCard({ day, initiallyOpen }: { day: ItineraryDay; initiallyOpen?: bo
                       {
                         label: 'VIP / Fast-Track',
                         value: `${attraction.vipRequired ?? '—'} · ${attraction.vipConfirmed ?? '—'}`,
+                      },
+                      { label: 'Meal Notes', value: attraction.mealNotes ?? '—' },
+                      {
+                        label: 'Guest Experience Notes',
+                        value: attraction.guestExperienceNotes ?? '—',
                       },
                     ]}
                   />
@@ -134,7 +123,10 @@ export default function DriverItineraryScreen() {
         <View style={styles.head}>
           <View>
             <Eyebrow>Finalized by CEA</Eyebrow>
-            <PageTitle title="Itinerary" />
+            <PageTitle
+              title="Itinerary"
+              subtitle={dashboard?.activeTrip?.tripCode ?? undefined}
+            />
           </View>
           <Pill tone="gray">READONLY</Pill>
         </View>
@@ -162,7 +154,7 @@ export default function DriverItineraryScreen() {
           <>
             <Card>
               <Text style={styles.cardTitle}>Trip Details / Auto-Filled Booking Details</Text>
-              {booking ? <DetailGrid items={bookingDetails(booking)} /> : null}
+              {booking ? <DetailGrid items={bookingTripDetails(booking)} /> : null}
             </Card>
             <Card>
               <Text style={styles.cardTitle}>Trip overview</Text>
@@ -181,10 +173,14 @@ export default function DriverItineraryScreen() {
               />
             </Card>
           </>
-        ) : (
+        ) : days.length ? (
           days.map((day, index) => (
             <DayCard key={`${day.date}-${day.title}`} day={day} initiallyOpen={index === 0} />
           ))
+        ) : (
+          <Card>
+            <Text style={styles.summary}>No itinerary days are scheduled for this trip yet.</Text>
+          </Card>
         )}
       </ScrollView>
     </DriverScreenShell>
