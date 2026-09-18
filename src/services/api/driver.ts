@@ -92,6 +92,7 @@ export type SafetyItem = {
   section: string;
   label: string;
   confirmed: boolean;
+  syncSource?: 'fts_readiness' | 'fts_trips';
 };
 
 export type DriverReport = {

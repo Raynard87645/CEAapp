@@ -130,6 +130,11 @@ export default function DriverSafetyScreen() {
           Object.entries(checklist).map(([section, items]) => (
             <View key={section}>
               <Text style={styles.sectionLabel}>{section}</Text>
+              <Text style={styles.sectionHint}>
+                {items[0]?.syncSource === 'fts_readiness'
+                  ? 'Synced with FTS Readiness'
+                  : 'Synced with FTS Trips handover'}
+              </Text>
               <Card>
                 {items.map((item, index) => (
                   <View key={item.key} style={[styles.row, index > 0 && styles.rowBorder]}>
@@ -222,8 +227,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: DriverColors.ink,
-    marginBottom: 8,
+    marginBottom: 4,
     marginTop: 8,
+  },
+  sectionHint: {
+    fontSize: 11,
+    color: DriverColors.muted,
+    marginBottom: 8,
   },
   row: {
     flexDirection: 'row',
