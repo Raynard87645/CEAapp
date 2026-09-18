@@ -73,14 +73,16 @@ function isPrivateLanHost(host: string): boolean {
 }
 
 function getDevApiHost(): string {
-  const manualHost = parseHostFromAddress(process.env.EXPO_PUBLIC_DEV_API_HOST);
-  if (manualHost) {
-    return manualHost;
-  }
-
+  // Prefer Expo's LAN IP — it tracks the Mac after reboot/DHCP changes. Manual
+  // EXPO_PUBLIC_DEV_API_HOST is only a fallback when Metro host detection fails.
   const expoHost = getExpoDevHost();
   if (expoHost && isPrivateLanHost(expoHost)) {
     return expoHost;
+  }
+
+  const manualHost = parseHostFromAddress(process.env.EXPO_PUBLIC_DEV_API_HOST);
+  if (manualHost) {
+    return manualHost;
   }
 
   if (Platform.OS === 'android') {
@@ -105,6 +107,12 @@ function getDevApiBaseUrl(): string {
 function getConfiguredApiUrl(): string | null {
   const configured = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/$/, '');
   return configured || null;
+}
+
+/** When true, native dev uses EXPO_PUBLIC_API_URL as-is (e.g. a public HTTPS API). */
+function useConfiguredApiUrlInDev(): boolean {
+  const flag = process.env.EXPO_PUBLIC_USE_CONFIGURED_API_URL?.trim().toLowerCase();
+  return flag === '1' || flag === 'true' || flag === 'yes';
 }
 
 /** Hosts that only resolve on the dev machine (/etc/hosts), not on phones or emulators. */
