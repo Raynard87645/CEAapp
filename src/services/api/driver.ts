@@ -40,6 +40,39 @@ export type Checkpoint = {
   timeLabel?: string | null;
 };
 
+export type DriverShiftState = {
+  id: number;
+  trip_id: number;
+  driver_id: number;
+  status: string;
+
+  itinerary_day_id?: number | null;
+  day_type?: string | null;
+  date?: string | null;
+
+  required_check_in_at?: string | null;
+  window_opens_at?: string | null;
+
+  check_in_requested_at?: string | null;
+  check_in_approved_at?: string | null;
+  checked_in_at?: string | null;
+
+  check_out_requested_at?: string | null;
+  check_out_approved_at?: string | null;
+  checked_out_at?: string | null;
+};
+
+export type TripCompletionState = {
+  requested_at?: string | null;
+  approved_at?: string | null;
+  completed_at?: string | null;
+};
+
+export type DriverShiftResponse = {
+  message: string;
+  shift: DriverShiftState;
+};
+
 export type SafetyItem = {
   key: string;
   section: string;
@@ -126,11 +159,48 @@ export const driverApi = {
   },
 
   checkpoints: (tripId: number) =>
-    apiRequest<{ checkpoints: Checkpoint[] }>(`/driver/trips/${tripId}/checkpoints`),
+    apiRequest<{
+      checkpoints: Checkpoint[];
+      shift: DriverShiftState;
+      trip_completion: TripCompletionState;
+    }>(`/driver/trips/${tripId}/checkpoints`),
 
   toggleCheckpoint: (tripId: number, checkpoint: string) =>
     apiRequest<{ checkpoints: Checkpoint[] }>(
       `/driver/trips/${tripId}/checkpoints/${checkpoint}`,
+      {
+        method: 'POST',
+      },
+    ),
+
+  requestCheckIn: (tripId: number) =>
+    apiRequest<DriverShiftResponse>(
+      `/driver/trips/${tripId}/check-in/request`,
+      {
+        method: 'POST',
+      },
+    ),
+
+  requestCheckOut: (tripId: number) =>
+    apiRequest<DriverShiftResponse>(
+      `/driver/trips/${tripId}/check-out/request`,
+      {
+        method: 'POST',
+      },
+    ),
+
+  requestEndTrip: (tripId: number) =>
+    apiRequest<{
+      message: string;
+      trip: {
+        id: number;
+        status: string;
+        trip_completion_requested_at?: string | null;
+        trip_completion_approved_at?: string | null;
+        completed_at?: string | null;
+      };
+    }>(
+      `/driver/trips/${tripId}/end-trip/request`,
       { method: 'POST' },
     ),
 
@@ -158,9 +228,14 @@ export const driverApi = {
 
   submitReport: (
     tripId: number,
-    payload: { type: string; description?: string; photoUri?: string | null },
+    payload: {
+      type: string;
+      description?: string;
+      photoUri?: string | null;
+    },
   ) => {
     const form = new FormData();
+
     form.append('type', payload.type);
 
     if (payload.description) {
@@ -175,12 +250,16 @@ export const driverApi = {
       } as unknown as Blob);
     }
 
-    return apiRequest<{ report: { id: number; type: string; description: string } }>(
-      `/driver/trips/${tripId}/reports`,
-      {
-        method: 'POST',
-        body: form,
-      },
-    );
+    return apiRequest<{
+      report: {
+        id: number;
+        type: string;
+        description: string;
+      };
+    }>(`/driver/trips/${tripId}/reports`, {
+      method: 'POST',
+      body: form,
+    });
   },
 };
+

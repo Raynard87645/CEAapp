@@ -33,11 +33,22 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     setLoading(true);
 
     try {
-      const data = await driverApi.dashboard();
-      setDashboard(data);
-    } catch {
-      setDashboard(null);
-    } finally {
+    const data = await driverApi.dashboard();
+
+    console.log(
+      'DRIVER DASHBOARD RESPONSE',
+      JSON.stringify(data, null, 2),
+    );
+
+    setDashboard(data);
+  } catch (error) {
+    console.error(
+      'DRIVER DASHBOARD ERROR',
+      error,
+    );
+
+    setDashboard(null);
+} finally {
       setLoading(false);
     }
   }, [isAuthenticated, role]);
