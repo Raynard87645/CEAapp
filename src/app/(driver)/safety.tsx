@@ -144,7 +144,21 @@ export default function DriverSafetyScreen() {
               </Card>
             </View>
           ))
+
+          
         )}
+        <View style={styles.actions}>
+            <Pressable
+              style={[styles.submitBtn, submitting && styles.disabled]}
+              onPress={handleSubmit}
+              disabled={submitting}>
+              {submitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.submitText}>Safety Check Done</Text>
+              )}
+            </Pressable>
+          </View>
 
         <Text style={styles.sectionLabel}>Issue Report</Text>
         <Card>
