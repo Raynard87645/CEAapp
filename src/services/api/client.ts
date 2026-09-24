@@ -244,12 +244,20 @@ export const api = {
       journey:
         import('@/services/api/types').JourneySummary;
     }>('/journey'),
+  
+  messageParticipants: () =>
+    apiRequest<{
+      participants:
+        import('@/services/api/types').MessageParticipant[];
+    }>('/messages/participants'),
 
   itinerary: () =>
     apiRequest<{
       itinerary:
         import('@/services/api/types').ItineraryEvent[];
     }>('/itinerary'),
+
+   
 
   /*
    * Existing Journey-based add-on endpoints.

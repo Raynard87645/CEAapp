@@ -6,9 +6,9 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Alert } from 'react-native';
 
 import { AppDrawer } from '@/components/app-drawer';
+import { AppDialog } from '@/components/ui/app-dialog';
 import { useAuth } from '@/context/auth-context';
 import { resetToLanding } from '@/lib/navigation';
 
@@ -17,11 +17,19 @@ type DrawerContextValue = {
   closeDrawer: () => void;
 };
 
-const DrawerContext = createContext<DrawerContextValue | null>(null);
+const DrawerContext =
+  createContext<DrawerContextValue | null>(null);
 
-export function DrawerProvider({ children }: { children: ReactNode }) {
+export function DrawerProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const { logout, isAuthenticated } = useAuth();
   const [visible, setVisible] = useState(false);
+
+  const [logoutDialogVisible, setLogoutDialogVisible] =
+    useState(false);
 
   const openDrawer = useCallback(() => {
     setVisible(true);
@@ -32,20 +40,19 @@ export function DrawerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleLogout = useCallback(() => {
-    Alert.alert('Log out', 'Sign out of Tour Jamaica?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Log out',
-        style: 'destructive',
-        onPress: () => {
-          void (async () => {
-            closeDrawer();
-            await logout();
-            resetToLanding();
-          })();
-        },
-      },
-    ]);
+    setLogoutDialogVisible(true);
+  }, []);
+
+  const closeLogoutDialog = useCallback(() => {
+    setLogoutDialogVisible(false);
+  }, []);
+
+  const confirmLogout = useCallback(async () => {
+    setLogoutDialogVisible(false);
+    closeDrawer();
+
+    await logout();
+    resetToLanding();
   }, [closeDrawer, logout]);
 
   const value = useMemo(
@@ -59,8 +66,27 @@ export function DrawerProvider({ children }: { children: ReactNode }) {
   return (
     <DrawerContext.Provider value={value}>
       {children}
+
       {isAuthenticated ? (
-        <AppDrawer visible={visible} onClose={closeDrawer} onLogout={handleLogout} />
+        <>
+          <AppDrawer
+            visible={visible}
+            onClose={closeDrawer}
+            onLogout={handleLogout}
+          />
+
+          <AppDialog
+            visible={logoutDialogVisible}
+            title="Log out"
+            message="Sign out of Tour Jamaica?"
+            confirmLabel="Log out"
+            cancelLabel="Cancel"
+            onConfirm={() => {
+              void confirmLogout();
+            }}
+            onCancel={closeLogoutDialog}
+          />
+        </>
       ) : null}
     </DrawerContext.Provider>
   );
@@ -70,7 +96,9 @@ export function useDrawer() {
   const context = useContext(DrawerContext);
 
   if (!context) {
-    throw new Error('useDrawer must be used within DrawerProvider');
+    throw new Error(
+      'useDrawer must be used within DrawerProvider',
+    );
   }
 
   return context;

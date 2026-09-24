@@ -2,7 +2,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -14,13 +13,19 @@ import {
 
 import { DriverScreenShell } from '@/components/driver/top-bar';
 import { Card, Eyebrow, PageTitle, Pill } from '@/components/driver/ui';
+import { AppDialog } from '@/components/ui/app-dialog';
 import { DriverColors } from '@/constants/driver-colors';
 import { useDriver } from '@/context/driver-context';
-import { driverApi, type DriverReport, type SafetyItem } from '@/services/api/driver';
+import {
+  driverApi,
+  type DriverReport,
+  type SafetyItem,
+} from '@/services/api/driver';
 
 export default function DriverSafetyScreen() {
   const { dashboard } = useDriver();
   const tripId = dashboard?.activeTrip?.id;
+
   const [checklist, setChecklist] = useState<Record<string, SafetyItem[]>>({});
   const [reportTypes, setReportTypes] = useState<string[]>([]);
   const [reports, setReports] = useState<DriverReport[]>([]);
@@ -30,11 +35,34 @@ export default function DriverSafetyScreen() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  const [dialog, setDialog] = useState({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
   const checklistComplete = useMemo(
     () =>
-      Object.values(checklist).every((items) => items.every((item) => item.confirmed)),
+      Object.values(checklist).every((items) =>
+        items.every((item) => item.confirmed),
+      ),
     [checklist],
   );
+
+  const showDialog = useCallback((title: string, message = '') => {
+    setDialog({
+      visible: true,
+      title,
+      message,
+    });
+  }, []);
+
+  const closeDialog = useCallback(() => {
+    setDialog((current) => ({
+      ...current,
+      visible: false,
+    }));
+  }, []);
 
   const load = useCallback(async () => {
     if (!tripId) {
@@ -46,16 +74,20 @@ export default function DriverSafetyScreen() {
 
     try {
       const response = await driverApi.safety(tripId);
+
       setChecklist(response.checklist);
       setReportTypes(response.reportTypes);
       setReports(response.reports);
       setReportType(response.reportTypes[0] ?? 'General Issue');
     } catch (error) {
-      Alert.alert('Unable to load safety checklist', error instanceof Error ? error.message : 'Try again.');
+      showDialog(
+        'Unable to load safety checklist',
+        error instanceof Error ? error.message : 'Try again.',
+      );
     } finally {
       setLoading(false);
     }
-  }, [tripId]);
+  }, [tripId, showDialog]);
 
   useEffect(() => {
     void load();
@@ -67,14 +99,33 @@ export default function DriverSafetyScreen() {
     }
 
     try {
-      const response = await driverApi.toggleSafetyItem(tripId, section, key);
+      const response = await driverApi.toggleSafetyItem(
+        tripId,
+        section,
+        key,
+      );
+
       setChecklist(response.checklist);
     } catch (error) {
-      Alert.alert('Unable to update item', error instanceof Error ? error.message : 'Try again.');
+      showDialog(
+        'Unable to update item',
+        error instanceof Error ? error.message : 'Try again.',
+      );
     }
   };
 
   const pickPhoto = async () => {
+    const permission =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      showDialog(
+        'Photo access required',
+        'Allow photo access in your device settings to attach a photo to a safety report.',
+      );
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.8,
@@ -86,8 +137,21 @@ export default function DriverSafetyScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!tripId || (!reportNotes.trim() && !photoUri)) {
-      Alert.alert('Add report notes or a photo.');
+    const notes = reportNotes.trim();
+
+    if (!tripId) {
+      showDialog(
+        'No active trip',
+        'A safety report can only be submitted when you have an active trip.',
+      );
+      return;
+    }
+
+    if (!notes && !photoUri) {
+      showDialog(
+        'Add report details',
+        'Add report notes or attach a photo before submitting.',
+      );
       return;
     }
 
@@ -96,15 +160,23 @@ export default function DriverSafetyScreen() {
     try {
       const response = await driverApi.submitReport(tripId, {
         type: reportType,
-        description: reportNotes.trim(),
+        description: notes,
         photoUri,
       });
+
       setReports((current) => [response.report, ...current]);
       setReportNotes('');
       setPhotoUri(null);
-      Alert.alert('Safety report sent to FTS');
+
+      showDialog(
+        'Safety report sent',
+        'Your report has been sent to FTS.',
+      );
     } catch (error) {
-      Alert.alert('Unable to submit report', error instanceof Error ? error.message : 'Try again.');
+      showDialog(
+        'Unable to submit report',
+        error instanceof Error ? error.message : 'Try again.',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -112,54 +184,101 @@ export default function DriverSafetyScreen() {
 
   return (
     <DriverScreenShell>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}>
         <View style={styles.head}>
-          <View>
+          <View style={styles.headCopy}>
             <Eyebrow>Driver readiness</Eyebrow>
+
             <PageTitle
               title="Safety Check"
               subtitle={dashboard?.activeTrip?.tripCode ?? undefined}
             />
           </View>
+
           <Pill>{checklistComplete ? 'READY' : 'PRE-TRIP'}</Pill>
         </View>
 
         {loading ? (
-          <ActivityIndicator color={DriverColors.green} />
-        ) : (
+          <View style={styles.loading}>
+            <ActivityIndicator color={DriverColors.green} />
+          </View>
+        ) : Object.keys(checklist).length ? (
           Object.entries(checklist).map(([section, items]) => (
             <View key={section}>
               <Text style={styles.sectionLabel}>{section}</Text>
+
               <Text style={styles.sectionHint}>
                 {items[0]?.syncSource === 'fts_readiness'
                   ? 'Synced with FTS Readiness'
                   : 'Synced with FTS Trips handover'}
               </Text>
+
               <Card>
                 {items.map((item, index) => (
-                  <View key={item.key} style={[styles.row, index > 0 && styles.rowBorder]}>
+                  <View
+                    key={item.key}
+                    style={[
+                      styles.row,
+                      index > 0 && styles.rowBorder,
+                    ]}>
                     <Text style={styles.rowLabel}>{item.label}</Text>
+
                     <Pressable
-                      style={[styles.switch, item.confirmed && styles.switchOn]}
-                      onPress={() => handleToggle(section, item.key)}
+                      style={[
+                        styles.switch,
+                        item.confirmed && styles.switchOn,
+                      ]}
+                      onPress={() =>
+                        handleToggle(section, item.key)
+                      }
+                      accessibilityRole="switch"
+                      accessibilityState={{
+                        checked: item.confirmed,
+                      }}
+                      accessibilityLabel={item.label}
                     />
                   </View>
                 ))}
               </Card>
             </View>
           ))
+        ) : (
+          <Card>
+            <Text style={styles.empty}>
+              No safety checklist items are available for this trip.
+            </Text>
+          </Card>
         )}
 
         <Text style={styles.sectionLabel}>Issue Report</Text>
+
         <Card>
           <Text style={styles.fieldLabel}>Report Type</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeRow}>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.typeRow}>
             {reportTypes.map((type) => (
               <Pressable
                 key={type}
-                style={[styles.typeChip, reportType === type && styles.typeChipActive]}
-                onPress={() => setReportType(type)}>
-                <Text style={[styles.typeChipText, reportType === type && styles.typeChipTextActive]}>
+                style={[
+                  styles.typeChip,
+                  reportType === type && styles.typeChipActive,
+                ]}
+                onPress={() => setReportType(type)}
+                accessibilityRole="button"
+                accessibilityState={{
+                  selected: reportType === type,
+                }}>
+                <Text
+                  style={[
+                    styles.typeChipText,
+                    reportType === type &&
+                      styles.typeChipTextActive,
+                  ]}>
                   {type}
                 </Text>
               </Pressable>
@@ -167,6 +286,7 @@ export default function DriverSafetyScreen() {
           </ScrollView>
 
           <Text style={styles.fieldLabel}>Report Notes</Text>
+
           <TextInput
             style={styles.textarea}
             multiline
@@ -174,22 +294,50 @@ export default function DriverSafetyScreen() {
             placeholderTextColor={DriverColors.muted}
             value={reportNotes}
             onChangeText={setReportNotes}
+            textAlignVertical="top"
           />
 
-          {photoUri ? <Image source={{ uri: photoUri }} style={styles.preview} /> : null}
+          {photoUri ? (
+            <View style={styles.previewWrap}>
+              <Image
+                source={{ uri: photoUri }}
+                style={styles.preview}
+              />
+
+              <Pressable
+                style={styles.removePhoto}
+                onPress={() => setPhotoUri(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Remove attached photo">
+                <Text style={styles.removePhotoText}>Remove</Text>
+              </Pressable>
+            </View>
+          ) : null}
 
           <View style={styles.actions}>
-            <Pressable style={styles.cameraBtn} onPress={pickPhoto}>
+            <Pressable
+              style={styles.cameraBtn}
+              onPress={pickPhoto}
+              accessibilityRole="button"
+              accessibilityLabel="Attach photo">
               <Text style={styles.cameraText}>📷</Text>
             </Pressable>
+
             <Pressable
-              style={[styles.submitBtn, submitting && styles.disabled]}
+              style={[
+                styles.submitBtn,
+                submitting && styles.disabled,
+              ]}
               onPress={handleSubmit}
-              disabled={submitting}>
+              disabled={submitting}
+              accessibilityRole="button"
+              accessibilityLabel="Submit safety report">
               {submitting ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.submitText}>Submit Report</Text>
+                <Text style={styles.submitText}>
+                  Submit Report
+                </Text>
               )}
             </Pressable>
           </View>
@@ -199,30 +347,71 @@ export default function DriverSafetyScreen() {
           <Card key={report.id} style={styles.reportCard}>
             <View style={styles.reportHead}>
               <Pill tone="gold">{report.type}</Pill>
-              {report.status ? <Text style={styles.reportStatus}>{report.status}</Text> : null}
+
+              {report.status ? (
+                <Text style={styles.reportStatus}>
+                  {report.status}
+                </Text>
+              ) : null}
             </View>
-            <Text style={styles.reportBody}>{report.description}</Text>
+
+            <Text style={styles.reportBody}>
+              {report.description}
+            </Text>
+
             {report.photoUrl ? (
-              <Image source={{ uri: report.photoUrl }} style={styles.preview} />
+              <Image
+                source={{ uri: report.photoUrl }}
+                style={styles.preview}
+              />
             ) : null}
+
             <View style={styles.meta}>
-              <Text style={styles.metaText}>{report.timeLabel ?? 'Just now'}</Text>
+              <Text style={styles.metaText}>
+                {report.timeLabel ?? 'Just now'}
+              </Text>
+
               <Text style={styles.metaText}>✓ Sent to FTS</Text>
             </View>
           </Card>
         ))}
       </ScrollView>
+
+      <AppDialog
+        visible={dialog.visible}
+        title={dialog.title}
+        message={dialog.message}
+        confirmLabel="OK"
+        onConfirm={closeDialog}
+        onCancel={closeDialog}
+      />
     </DriverScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    paddingBottom: 24,
+  },
+
   head: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     marginBottom: 16,
   },
+
+  headCopy: {
+    flex: 1,
+    paddingRight: 12,
+  },
+
+  loading: {
+    paddingVertical: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   sectionLabel: {
     fontSize: 18,
     fontWeight: '600',
@@ -230,27 +419,32 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     marginTop: 8,
   },
+
   sectionHint: {
     fontSize: 11,
     color: DriverColors.muted,
     marginBottom: 8,
   },
+
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
   },
+
   rowBorder: {
     borderTopWidth: 1,
     borderTopColor: DriverColors.line,
   },
+
   rowLabel: {
     flex: 1,
     fontSize: 13,
     color: DriverColors.ink,
     paddingRight: 12,
   },
+
   switch: {
     width: 45,
     height: 26,
@@ -258,11 +452,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#d8d3c8',
     padding: 3,
     justifyContent: 'center',
+    alignItems: 'flex-start',
   },
+
   switchOn: {
     backgroundColor: DriverColors.green,
     alignItems: 'flex-end',
   },
+
   fieldLabel: {
     fontSize: 12,
     fontWeight: '700',
@@ -270,9 +467,11 @@ const styles = StyleSheet.create({
     marginBottom: 7,
     marginTop: 8,
   },
+
   typeRow: {
     marginBottom: 8,
   },
+
   typeChip: {
     borderWidth: 1,
     borderColor: DriverColors.line,
@@ -282,18 +481,22 @@ const styles = StyleSheet.create({
     marginRight: 8,
     backgroundColor: '#fff',
   },
+
   typeChipActive: {
     backgroundColor: DriverColors.green,
     borderColor: DriverColors.green,
   },
+
   typeChipText: {
     fontSize: 12,
     color: DriverColors.ink,
   },
+
   typeChipTextActive: {
     color: '#fff',
     fontWeight: '700',
   },
+
   textarea: {
     minHeight: 100,
     borderWidth: 1,
@@ -304,18 +507,41 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
     color: DriverColors.ink,
   },
+
+  previewWrap: {
+    position: 'relative',
+  },
+
   preview: {
     width: '100%',
     height: 140,
     borderRadius: 12,
     marginTop: 8,
   },
+
+  removePhoto: {
+    position: 'absolute',
+    top: 16,
+    right: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+  },
+
+  removePhotoText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+
   actions: {
     flexDirection: 'row',
     gap: 9,
     marginTop: 10,
     alignItems: 'center',
   },
+
   cameraBtn: {
     width: 48,
     height: 47,
@@ -326,10 +552,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#fff',
   },
+
   cameraText: {
     fontSize: 20,
     color: DriverColors.gold,
   },
+
   submitBtn: {
     flex: 1,
     backgroundColor: DriverColors.green,
@@ -338,41 +566,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   submitText: {
     color: '#fff',
     fontWeight: '800',
   },
+
   disabled: {
     opacity: 0.7,
   },
+
   reportCard: {
     borderLeftWidth: 4,
     borderLeftColor: DriverColors.gold,
   },
+
   reportHead: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 8,
   },
+
   reportStatus: {
     fontSize: 11,
     fontWeight: '700',
     color: DriverColors.muted,
     textTransform: 'uppercase',
   },
+
   reportBody: {
     marginTop: 10,
     color: DriverColors.ink,
     fontSize: 13,
   },
+
   meta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 10,
   },
+
   metaText: {
     color: DriverColors.muted,
     fontSize: 11,
+  },
+
+  empty: {
+    color: DriverColors.muted,
+    fontSize: 13,
+    lineHeight: 19,
   },
 });

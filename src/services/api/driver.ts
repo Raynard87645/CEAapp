@@ -132,6 +132,15 @@ export type DriverNotification = {
   createdAt?: string;
 };
 
+export type MessageParticipant = {
+  id: string;
+  name: string;
+  role: string;
+  initials: string;
+  tripId: number;
+  tripCode: string;
+};
+
 export type DriverDashboard = {
   driver: {
     id: number;
@@ -157,6 +166,11 @@ export const driverApi = {
 
   trip: (tripId: number) => apiRequest<{ trip: TripSummary }>(`/driver/trips/${tripId}`),
 
+  messageParticipants: () =>
+  apiRequest<{ participants: MessageParticipant[] }>(
+    '/driver/messages/participants',
+  ),
+  
   itinerary: (tripId: number) =>
     apiRequest<{
       itinerary: {

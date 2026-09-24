@@ -125,6 +125,14 @@ export type UpdateItem = {
   kind: string;
   unread: boolean;
 };
+export type MessageParticipant = {
+  id: string;
+  name: string;
+  role: string;
+  initials: string;
+  tripId: number;
+  tripCode: string;
+};
 
 export type ApiError = {
   message: string;

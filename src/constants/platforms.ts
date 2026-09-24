@@ -19,9 +19,9 @@ export type PlatformConfig = {
 
 export const CLIENT_JOURNEY_TABS: PlatformTab[] = [
   { name: 'index', label: 'Home', icon: '⌂', title: 'Home' },
-  { name: 'itinerary', label: 'Itinerary', icon: '▤', title: 'Itinerary' },
+  { name: 'itinerary', label: 'Itinerary', icon: 'calendar', title: 'Itinerary' },
   { name: 'addons', label: 'Add-ons', icon: '+', title: 'Add-ons' },
-  { name: 'messages', label: 'Messages', icon: '□', title: 'Messages' },
+  { name: 'messages', label: 'Messages', icon: 'chat', title: 'Messages' },
   { name: 'updates', label: 'Updates', icon: '≡', title: 'Updates' },
 ];
 
@@ -101,11 +101,11 @@ export const PLATFORMS: Record<AppRole, PlatformConfig> = {
     label: 'Driver Portal',
     eyebrow: 'DRIVER PORTAL',
     homeRoute: '/(driver)',
-    welcomeMessage: 'Preparing your driver workspace.',
+    welcomeMessage: '',
     tabs: [
       { name: 'index', label: 'Updates', icon: '◉', title: 'Updates' },
       { name: 'trips', label: 'Trips', icon: '▤', title: 'Trips' },
-      { name: 'itinerary', label: 'Itinerary', icon: '⌁', title: 'Itinerary' },
+      { name: 'itinerary', label: 'Itinerary', icon: 'calendar', title: 'Itinerary' },
       { name: 'checkin', label: 'Check-In', icon: '✓', title: 'Check-In' },
       { name: 'safety', label: 'Safety', icon: '◇', title: 'Safety' },
     ],

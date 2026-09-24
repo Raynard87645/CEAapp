@@ -23,9 +23,10 @@ export default function ItineraryScreen() {
   const { bookingId, fullName } = useAuth();
 
   const [viewMode, setViewMode] = useState<'full' | 'day'>('full');
-
-  const [journey, setJourney] = useState<JourneySummary | null>(null);
-  const [itinerary, setItinerary] = useState<ItineraryEvent[]>([]);
+  const [journey, setJourney] =
+    useState<JourneySummary | null>(null);
+  const [itinerary, setItinerary] =
+    useState<ItineraryEvent[]>([]);
   const [selectedDay, setSelectedDay] = useState('');
 
   const [loading, setLoading] = useState(true);
@@ -48,7 +49,10 @@ export default function ItineraryScreen() {
         setLoading(true);
         setError(null);
 
-        const [bookingResponse, itineraryResponse] = await Promise.all([
+        const [
+          bookingResponse,
+          itineraryResponse,
+        ] = await Promise.all([
           api.bookingOverview(bookingId),
           api.bookingItinerary(bookingId),
         ]);
@@ -57,7 +61,8 @@ export default function ItineraryScreen() {
           return;
         }
 
-        const itineraryData = itineraryResponse.itinerary ?? [];
+        const itineraryData =
+          itineraryResponse.itinerary ?? [];
 
         setJourney(bookingResponse.journey);
         setItinerary(itineraryData);
@@ -90,13 +95,19 @@ export default function ItineraryScreen() {
   }, [bookingId]);
 
   const selectedItineraryDay = useMemo(
-    () => itinerary.find((item) => item.day === selectedDay),
+    () =>
+      itinerary.find(
+        (item) => item.day === selectedDay,
+      ),
     [itinerary, selectedDay],
   );
 
   return (
     <View style={styles.screen}>
-      <AppHeader avatarUri={avatarUri} onAvatarPress={pickAvatar} />
+      <AppHeader
+        avatarUri={avatarUri}
+        onAvatarPress={pickAvatar}
+      />
 
       {loading ? (
         <View style={styles.loadingState}>
@@ -108,24 +119,31 @@ export default function ItineraryScreen() {
         </View>
       ) : error ? (
         <View style={styles.loadingState}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorText}>
+            {error}
+          </Text>
         </View>
       ) : (
         <ScrollView
           contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}>
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.head}>
             <EyebrowText>
               {journey
                 ? `${journey.travelDates} · ${journey.guestCount} ${
-                    journey.guestCount === 1 ? 'Guest' : 'Guests'
+                    journey.guestCount === 1
+                      ? 'Guest'
+                      : 'Guests'
                   }`
                 : 'YOUR JAMAICA EXPERIENCE'}
             </EyebrowText>
 
             <SerifTitle size="page">
               Your
-              <Text style={styles.accent}> itinerary</Text>
+              <Text style={styles.accent}>
+                {' '}itinerary
+              </Text>
             </SerifTitle>
 
             <Text style={styles.subtitle}>
@@ -140,13 +158,15 @@ export default function ItineraryScreen() {
                 styles.viewSwitcherButton,
                 viewMode === 'full' &&
                   styles.viewSwitcherButtonActive,
-              ]}>
+              ]}
+            >
               <Text
                 style={[
                   styles.viewSwitcherText,
                   viewMode === 'full' &&
                     styles.viewSwitcherTextActive,
-                ]}>
+                ]}
+              >
                 FULL TRIP
               </Text>
             </Pressable>
@@ -157,13 +177,15 @@ export default function ItineraryScreen() {
                 styles.viewSwitcherButton,
                 viewMode === 'day' &&
                   styles.viewSwitcherButtonActive,
-              ]}>
+              ]}
+            >
               <Text
                 style={[
                   styles.viewSwitcherText,
                   viewMode === 'day' &&
                     styles.viewSwitcherTextActive,
-                ]}>
+                ]}
+              >
                 DAY BY DAY
               </Text>
             </Pressable>
@@ -191,7 +213,9 @@ export default function ItineraryScreen() {
               </View>
 
               <View style={styles.tripFact}>
-                <Text style={styles.tripFactLabel}>STAY</Text>
+                <Text style={styles.tripFactLabel}>
+                  STAY
+                </Text>
 
                 <Text style={styles.tripFactValue}>
                   {journey?.accommodation ||
@@ -205,7 +229,8 @@ export default function ItineraryScreen() {
                 </Text>
 
                 <Text style={styles.tripFactValue}>
-                  {journey?.vehicle || 'To be confirmed'}
+                  {journey?.vehicle ||
+                    'To be confirmed'}
                 </Text>
               </View>
 
@@ -222,45 +247,57 @@ export default function ItineraryScreen() {
             </View>
           </View>
 
-          {viewMode === 'day' && itinerary.length > 0 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.daySelector}>
-              {itinerary.map((item, index) => {
-                const active = selectedDay === item.day;
-                const [weekday, date] = item.day.split(' ');
+          {viewMode === 'day' &&
+            itinerary.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={
+                  styles.daySelector
+                }
+              >
+                {itinerary.map((item, index) => {
+                  const active =
+                    selectedDay === item.day;
+                  const [weekday, date] =
+                    item.day.split(' ');
 
-                return (
-                  <Pressable
-                    key={`${item.day}-${index}`}
-                    onPress={() => setSelectedDay(item.day)}
-                    style={[
-                      styles.dayButton,
-                      active && styles.dayButtonActive,
-                    ]}>
-                    <Text
+                  return (
+                    <Pressable
+                      key={`${item.day}-${index}`}
+                      onPress={() =>
+                        setSelectedDay(item.day)
+                      }
                       style={[
-                        styles.dayButtonWeekday,
+                        styles.dayButton,
                         active &&
-                          styles.dayButtonTextActive,
-                      ]}>
-                      {weekday}
-                    </Text>
+                          styles.dayButtonActive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.dayButtonWeekday,
+                          active &&
+                            styles.dayButtonTextActive,
+                        ]}
+                      >
+                        {weekday}
+                      </Text>
 
-                    <Text
-                      style={[
-                        styles.dayButtonDate,
-                        active &&
-                          styles.dayButtonTextActive,
-                      ]}>
-                      {date}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          )}
+                      <Text
+                        style={[
+                          styles.dayButtonDate,
+                          active &&
+                            styles.dayButtonTextActive,
+                        ]}
+                      >
+                        {date}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            )}
 
           {itinerary.length === 0 ? (
             <View style={styles.emptyState}>
@@ -269,19 +306,22 @@ export default function ItineraryScreen() {
               </Text>
 
               <Text style={styles.emptyStateText}>
-                Your confirmed itinerary details will appear
-                here once they are available.
+                Your confirmed itinerary details
+                will appear here once they are
+                available.
               </Text>
             </View>
           ) : viewMode === 'full' ? (
             <View style={styles.trip}>
               {itinerary.map((item, index) => {
-                const [weekday, date] = item.day.split(' ');
+                const [weekday, date] =
+                  item.day.split(' ');
 
                 return (
                   <View
                     key={`${item.day}-${index}`}
-                    style={styles.daySection}>
+                    style={styles.daySection}
+                  >
                     <View style={styles.dayHeading}>
                       <View style={styles.dateBox}>
                         <Text style={styles.dateDay}>
@@ -293,7 +333,9 @@ export default function ItineraryScreen() {
                         </Text>
                       </View>
 
-                      <View style={styles.dayHeadingCopy}>
+                      <View
+                        style={styles.dayHeadingCopy}
+                      >
                         <Text style={styles.dayLabel}>
                           DAY {index + 1}
                         </Text>
@@ -306,66 +348,125 @@ export default function ItineraryScreen() {
 
                     <View style={styles.timeline}>
                       <View style={styles.timelineItem}>
-                        <View style={styles.timelineRail}>
-                          <View style={styles.timelineDot} />
+                        <View
+                          style={styles.timelineRail}
+                        >
+                          <View
+                            style={styles.timelineDot}
+                          />
                         </View>
 
-                        <View style={styles.eventCard}>
-                          <View style={styles.eventHeader}>
-                            <Text style={styles.eventTag}>
-                              {item.tag || 'Experience'}
+                        <View
+                          style={styles.eventCard}
+                        >
+                          <View
+                            style={styles.eventHeader}
+                          >
+                            <Text
+                              style={styles.eventTag}
+                            >
+                              {item.tag ||
+                                'Experience'}
                             </Text>
 
-                            <Text style={styles.eventTime}>
-                              {item.time || 'At your pace'}
+                            <Text
+                              style={styles.eventTime}
+                            >
+                              {item.time ||
+                                'At your pace'}
                             </Text>
                           </View>
 
-                          <Text style={styles.eventTitle}>
-                            {item.title || 'Your Day'}
+                          <Text
+                            style={styles.eventTitle}
+                          >
+                            {item.title ||
+                              'Your Day'}
                           </Text>
 
                           {!!item.place && (
-                            <Text style={styles.eventPlace}>
+                            <Text
+                              style={styles.eventPlace}
+                            >
                               {item.place}
                             </Text>
                           )}
 
                           {!!item.detail && (
-                            <Text style={styles.eventDetail}>
+                            <Text
+                              style={styles.eventDetail}
+                            >
                               {item.detail}
                             </Text>
                           )}
 
-                          {item.attractions?.length > 0 && (
-                            <View style={styles.attractions}>
-                              <Text style={styles.attractionsLabel}>
+                          {item.attractions?.length >
+                            0 && (
+                            <View
+                              style={styles.attractions}
+                            >
+                              <Text
+                                style={
+                                  styles.attractionsLabel
+                                }
+                              >
                                 ATTRACTIONS
                               </Text>
 
                               {item.attractions.map(
-                                (attraction, attractionIndex) => (
+                                (
+                                  attraction,
+                                  attractionIndex,
+                                ) => (
                                   <View
-                                    key={attraction.id}
-                                    style={styles.attractionItem}>
-                                    <View style={styles.attractionNumber}>
+                                    key={
+                                      attraction.id
+                                    }
+                                    style={
+                                      styles.attractionItem
+                                    }
+                                  >
+                                    <View
+                                      style={
+                                        styles.attractionNumber
+                                      }
+                                    >
                                       <Text
                                         style={
                                           styles.attractionNumberText
-                                        }>
-                                        {attractionIndex + 1}
+                                        }
+                                      >
+                                        {attractionIndex +
+                                          1}
                                       </Text>
                                     </View>
 
-                                    <View style={styles.attractionCopy}>
-                                      <Text style={styles.attractionName}>
-                                        {attraction.name}
+                                    <View
+                                      style={
+                                        styles.attractionCopy
+                                      }
+                                    >
+                                      <Text
+                                        style={
+                                          styles.attractionName
+                                        }
+                                      >
+                                        {
+                                          attraction.name
+                                        }
                                       </Text>
 
-                                      {(attraction.arrivalTime ||
-                                        attraction.departureTime) && (
-                                        <Text style={styles.attractionTime}>
-                                          {attraction.arrivalTime ?? 'TBC'}
+                                      {(
+                                        attraction.arrivalTime ||
+                                        attraction.departureTime
+                                      ) && (
+                                        <Text
+                                          style={
+                                            styles.attractionTime
+                                          }
+                                        >
+                                          {attraction.arrivalTime ??
+                                            'TBC'}
 
                                           {attraction.departureTime
                                             ? ` – ${attraction.departureTime}`
@@ -377,7 +478,8 @@ export default function ItineraryScreen() {
                                         <Text
                                           style={
                                             styles.attractionDescription
-                                          }>
+                                          }
+                                        >
                                           {
                                             attraction.guestExperienceNotes
                                           }
@@ -388,22 +490,35 @@ export default function ItineraryScreen() {
                                         <Text
                                           style={
                                             styles.attractionDescription
-                                          }>
-                                          Dining: {attraction.mealNotes}
+                                          }
+                                        >
+                                          Dining:{' '}
+                                          {
+                                            attraction.mealNotes
+                                          }
                                         </Text>
                                       )}
 
                                       {attraction.ticketsRequired ===
                                         'Yes' && (
-                                        <Text style={styles.attractionMeta}>
+                                        <Text
+                                          style={
+                                            styles.attractionMeta
+                                          }
+                                        >
                                           Tickets:{' '}
                                           {attraction.ticketsConfirmed ||
                                             'Pending'}
                                         </Text>
                                       )}
 
-                                      {attraction.vipRequired === 'Yes' && (
-                                        <Text style={styles.attractionMeta}>
+                                      {attraction.vipRequired ===
+                                        'Yes' && (
+                                        <Text
+                                          style={
+                                            styles.attractionMeta
+                                          }
+                                        >
                                           VIP / Fast-Track:{' '}
                                           {attraction.vipConfirmed ||
                                             'Pending'}
@@ -427,11 +542,19 @@ export default function ItineraryScreen() {
               <View style={styles.dayHeading}>
                 <View style={styles.dateBox}>
                   <Text style={styles.dateDay}>
-                    {selectedItineraryDay.day.split(' ')[0]}
+                    {
+                      selectedItineraryDay.day.split(
+                        ' ',
+                      )[0]
+                    }
                   </Text>
 
                   <Text style={styles.dateNum}>
-                    {selectedItineraryDay.day.split(' ')[1]}
+                    {
+                      selectedItineraryDay.day.split(
+                        ' ',
+                      )[1]
+                    }
                   </Text>
                 </View>
 
@@ -440,7 +563,8 @@ export default function ItineraryScreen() {
                     DAY{' '}
                     {itinerary.findIndex(
                       (item) =>
-                        item.day === selectedItineraryDay.day,
+                        item.day ===
+                        selectedItineraryDay.day,
                     ) + 1}
                   </Text>
 
@@ -454,7 +578,9 @@ export default function ItineraryScreen() {
               <View style={styles.timeline}>
                 <View style={styles.timelineItem}>
                   <View style={styles.timelineRail}>
-                    <View style={styles.timelineDot} />
+                    <View
+                      style={styles.timelineDot}
+                    />
                   </View>
 
                   <View style={styles.eventCard}>
@@ -487,35 +613,68 @@ export default function ItineraryScreen() {
                       </Text>
                     )}
 
-                    {selectedItineraryDay.attractions?.length > 0 && (
-                      <View style={styles.attractions}>
-                        <Text style={styles.attractionsLabel}>
+                    {selectedItineraryDay.attractions
+                      ?.length > 0 && (
+                      <View
+                        style={styles.attractions}
+                      >
+                        <Text
+                          style={
+                            styles.attractionsLabel
+                          }
+                        >
                           ATTRACTIONS
                         </Text>
 
                         {selectedItineraryDay.attractions.map(
-                          (attraction, attractionIndex) => (
+                          (
+                            attraction,
+                            attractionIndex,
+                          ) => (
                             <View
                               key={attraction.id}
-                              style={styles.attractionItem}>
-                              <View style={styles.attractionNumber}>
+                              style={
+                                styles.attractionItem
+                              }
+                            >
+                              <View
+                                style={
+                                  styles.attractionNumber
+                                }
+                              >
                                 <Text
                                   style={
                                     styles.attractionNumberText
-                                  }>
+                                  }
+                                >
                                   {attractionIndex + 1}
                                 </Text>
                               </View>
 
-                              <View style={styles.attractionCopy}>
-                                <Text style={styles.attractionName}>
+                              <View
+                                style={
+                                  styles.attractionCopy
+                                }
+                              >
+                                <Text
+                                  style={
+                                    styles.attractionName
+                                  }
+                                >
                                   {attraction.name}
                                 </Text>
 
-                                {(attraction.arrivalTime ||
-                                  attraction.departureTime) && (
-                                  <Text style={styles.attractionTime}>
-                                    {attraction.arrivalTime ?? 'TBC'}
+                                {(
+                                  attraction.arrivalTime ||
+                                  attraction.departureTime
+                                ) && (
+                                  <Text
+                                    style={
+                                      styles.attractionTime
+                                    }
+                                  >
+                                    {attraction.arrivalTime ??
+                                      'TBC'}
 
                                     {attraction.departureTime
                                       ? ` – ${attraction.departureTime}`
@@ -527,7 +686,8 @@ export default function ItineraryScreen() {
                                   <Text
                                     style={
                                       styles.attractionDescription
-                                    }>
+                                    }
+                                  >
                                     {
                                       attraction.guestExperienceNotes
                                     }
@@ -538,21 +698,35 @@ export default function ItineraryScreen() {
                                   <Text
                                     style={
                                       styles.attractionDescription
-                                    }>
-                                    Dining: {attraction.mealNotes}
+                                    }
+                                  >
+                                    Dining:{' '}
+                                    {
+                                      attraction.mealNotes
+                                    }
                                   </Text>
                                 )}
 
-                                {attraction.ticketsRequired === 'Yes' && (
-                                  <Text style={styles.attractionMeta}>
+                                {attraction.ticketsRequired ===
+                                  'Yes' && (
+                                  <Text
+                                    style={
+                                      styles.attractionMeta
+                                    }
+                                  >
                                     Tickets:{' '}
                                     {attraction.ticketsConfirmed ||
                                       'Pending'}
                                   </Text>
                                 )}
 
-                                {attraction.vipRequired === 'Yes' && (
-                                  <Text style={styles.attractionMeta}>
+                                {attraction.vipRequired ===
+                                  'Yes' && (
+                                  <Text
+                                    style={
+                                      styles.attractionMeta
+                                    }
+                                  >
                                     VIP / Fast-Track:{' '}
                                     {attraction.vipConfirmed ||
                                       'Pending'}
@@ -579,8 +753,8 @@ export default function ItineraryScreen() {
               </EyebrowText>
 
               <Text style={styles.noteText}>
-                Additional guest experience notes will
-                appear here when confirmed.
+                Additional guest experience notes
+                will appear here when confirmed.
               </Text>
             </View>
           </View>
@@ -602,7 +776,8 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 18,
     paddingTop: 28,
-    paddingBottom: Layout.bottomNavHeight + Spacing.five,
+    paddingBottom:
+      Layout.bottomNavHeight + Spacing.five,
     gap: Spacing.four,
   },
 
@@ -956,7 +1131,8 @@ const styles = StyleSheet.create({
     color: Palette.cream,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.15)',
+    borderBottomColor:
+      'rgba(255,255,255,0.15)',
   },
 
   tripDetailsGrid: {
@@ -1008,77 +1184,4 @@ const styles = StyleSheet.create({
     color: Palette.muted,
     textAlign: 'center',
   },
-
-
-     /*
-tripOverview: {
-  backgroundColor: Palette.green,
-  borderRadius: 10,
-  padding: 18,
-  gap: 18,
-},
-
-tripOverviewTitle: {
-  fontFamily: Fonts.serif,
-  fontSize: 22,
-  color: Palette.cream,
-},
-
-tripOverviewTopRow: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  gap: 20,
-},
-
-guestBlock: {
-  flex: 1.2,
-  gap: 4,
-},
-
-guestName: {
-  fontFamily: Fonts.serif,
-  fontSize: 18,
-  color: Palette.cream,
-  marginBottom: 8,
-},
-
-packageLabel: {
-  fontSize: 7,
-  fontWeight: '800',
-  letterSpacing: 1.2,
-  color: 'rgba(255,255,255,0.55)',
-},
-
-packageValue: {
-  fontSize: 12,
-  fontWeight: '700',
-  color: Palette.cream,
-},
-
-tripFacts: {
-  flex: 2,
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  gap: 16,
-},
-
-tripFact: {
-  flex: 1,
-  gap: 4,
-},
-
-tripFactLabel: {
-  fontSize: 7,
-  fontWeight: '800',
-  letterSpacing: 1.2,
-  color: 'rgba(255,255,255,0.55)',
-},
-
-tripFactValue: {
-  fontFamily: Fonts.serif,
-  fontSize: 14,
-  lineHeight: 18,
-  color: Palette.cream,
-},
-  */
 });

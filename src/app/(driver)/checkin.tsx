@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
 
 import { DriverScreenShell } from '@/components/driver/top-bar';
 import { Card, Eyebrow, PageTitle } from '@/components/driver/ui';
+import { AppDialog } from '@/components/ui/app-dialog';
 import { DriverColors } from '@/constants/driver-colors';
 import { useDriver } from '@/context/driver-context';
 import {
@@ -32,7 +32,31 @@ export default function DriverCheckInScreen() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState<string | null>(null);
 
+  const [dialog, setDialog] = useState({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
   const tripId = dashboard?.activeTrip?.id;
+
+  const showDialog = useCallback(
+    (title: string, message = '') => {
+      setDialog({
+        visible: true,
+        title,
+        message,
+      });
+    },
+    [],
+  );
+
+  const closeDialog = useCallback(() => {
+    setDialog((current) => ({
+      ...current,
+      visible: false,
+    }));
+  }, []);
 
   const load = useCallback(async () => {
     if (!tripId) {
@@ -52,14 +76,14 @@ export default function DriverCheckInScreen() {
       setShift(response.shift);
       setTripCompletion(response.trip_completion);
     } catch (error) {
-      Alert.alert(
+      showDialog(
         'Unable to load checkpoints',
         error instanceof Error ? error.message : 'Try again.',
       );
     } finally {
       setLoading(false);
     }
-  }, [tripId]);
+  }, [tripId, showDialog]);
 
   useEffect(() => {
     void load();
@@ -79,11 +103,9 @@ export default function DriverCheckInScreen() {
 
     if (
       checkpoint.key === 'end_shift' &&
-      (
-        !shift?.checked_in_at ||
+      (!shift?.checked_in_at ||
         shift?.check_out_requested_at ||
-        shift?.checked_out_at
-      )
+        shift?.checked_out_at)
     ) {
       return;
     }
@@ -96,7 +118,7 @@ export default function DriverCheckInScreen() {
 
         setShift(response.shift);
 
-        Alert.alert(
+        showDialog(
           'Check-in requested',
           response.message ||
             'Your check-in request was sent to FTS for approval.',
@@ -111,7 +133,7 @@ export default function DriverCheckInScreen() {
 
         setShift(response.shift);
 
-        Alert.alert(
+        showDialog(
           'Check-out requested',
           response.message ||
             'Your check-out request was sent to FTS for approval.',
@@ -128,7 +150,7 @@ export default function DriverCheckInScreen() {
 
       setCheckpoints(response.checkpoints);
     } catch (error) {
-      Alert.alert(
+      showDialog(
         checkpoint.key === 'start_shift'
           ? 'Unable to request check-in'
           : checkpoint.key === 'end_shift'
@@ -170,7 +192,7 @@ export default function DriverCheckInScreen() {
           null,
       });
 
-      Alert.alert(
+      showDialog(
         'End trip requested',
         response.message ||
           'Your end trip request was sent to FTS for approval.',
@@ -178,7 +200,7 @@ export default function DriverCheckInScreen() {
 
       await load();
     } catch (error) {
-      Alert.alert(
+      showDialog(
         'Unable to request end trip',
         error instanceof Error ? error.message : 'Try again.',
       );
@@ -209,15 +231,15 @@ export default function DriverCheckInScreen() {
     if (checkpoint.key === 'start_shift') {
       return Boolean(
         shift?.check_in_requested_at ||
-        shift?.checked_in_at,
+          shift?.checked_in_at,
       );
     }
 
     if (checkpoint.key === 'end_shift') {
       return Boolean(
         !shift?.checked_in_at ||
-        shift?.check_out_requested_at ||
-        shift?.checked_out_at,
+          shift?.check_out_requested_at ||
+          shift?.checked_out_at,
       );
     }
 
@@ -258,7 +280,10 @@ export default function DriverCheckInScreen() {
         return time ? `Checked out at ${time}` : 'Checked out';
       }
 
-      if (shift?.check_out_approved_at && !shift?.checked_out_at) {
+      if (
+        shift?.check_out_approved_at &&
+        !shift?.checked_out_at
+      ) {
         return 'Check-out approved — awaiting FTS confirmation';
       }
 
@@ -287,13 +312,20 @@ export default function DriverCheckInScreen() {
     isDepartureDay &&
     Boolean(shift?.checked_out_at);
 
-  const endTripRequested = Boolean(tripCompletion?.requested_at);
-  const endTripCompleted = Boolean(tripCompletion?.completed_at);
+  const endTripRequested = Boolean(
+    tripCompletion?.requested_at,
+  );
+
+  const endTripCompleted = Boolean(
+    tripCompletion?.completed_at,
+  );
 
   const shiftSummary = shift
     ? [
         shift.tripCode ? `Trip ${shift.tripCode}` : null,
-        shift.day_type ? `${shift.day_type}${shift.date ? ` · ${shift.date}` : ''}` : null,
+        shift.day_type
+          ? `${shift.day_type}${shift.date ? ` · ${shift.date}` : ''}`
+          : null,
         shift.status ? `Shift ${shift.status}` : null,
         shift.window_opens_at
           ? `Check-in window opens ${formatShiftTime(shift.window_opens_at) ?? '—'}`
@@ -308,10 +340,13 @@ export default function DriverCheckInScreen() {
 
   return (
     <DriverScreenShell>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}>
         <View style={styles.head}>
           <View>
             <Eyebrow>Movement log</Eyebrow>
+
             <PageTitle
               title="Check-In"
               subtitle={
@@ -325,7 +360,9 @@ export default function DriverCheckInScreen() {
 
         {shiftSummary ? (
           <Card>
-            <Text style={styles.shiftSummary}>{shiftSummary}</Text>
+            <Text style={styles.shiftSummary}>
+              {shiftSummary}
+            </Text>
           </Card>
         ) : null}
 
@@ -373,7 +410,7 @@ export default function DriverCheckInScreen() {
                       ) : null}
                     </Pressable>
 
-                    <View style={{ flex: 1 }}>
+                    <View style={styles.itemCopy}>
                       <Text style={styles.label}>
                         {checkpoint.label}
                       </Text>
@@ -409,14 +446,15 @@ export default function DriverCheckInScreen() {
                         size="small"
                         color={DriverColors.green}
                       />
-                    ) : tripCompletion?.completed_at || tripCompletion?.approved_at ? (
+                    ) : tripCompletion?.completed_at ||
+                      tripCompletion?.approved_at ? (
                       <Text style={styles.toggleMark}>
                         ✓
                       </Text>
                     ) : null}
                   </Pressable>
 
-                  <View style={{ flex: 1 }}>
+                  <View style={styles.itemCopy}>
                     <Text style={styles.label}>
                       End Trip
                     </Text>
@@ -443,30 +481,47 @@ export default function DriverCheckInScreen() {
           Confirmed timestamps sync to FTS.
         </Text>
       </ScrollView>
+
+      <AppDialog
+        visible={dialog.visible}
+        title={dialog.title}
+        message={dialog.message}
+        confirmLabel="OK"
+        onConfirm={closeDialog}
+        onCancel={closeDialog}
+      />
     </DriverScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    paddingBottom: 24,
+  },
+
   head: {
     marginBottom: 16,
   },
+
   shiftSummary: {
     fontSize: 12,
     lineHeight: 18,
     color: DriverColors.ink,
     fontWeight: '600',
   },
+
   item: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     paddingVertical: 13,
   },
+
   itemBorder: {
     borderTopWidth: 1,
     borderTopColor: DriverColors.line,
   },
+
   toggle: {
     width: 31,
     height: 31,
@@ -477,30 +532,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   toggleDone: {
     backgroundColor: DriverColors.green,
     borderColor: DriverColors.green,
   },
+
   toggleMark: {
     color: '#fff',
     fontWeight: '900',
   },
+
+  itemCopy: {
+    flex: 1,
+  },
+
   label: {
     fontSize: 13,
     fontWeight: '700',
     color: DriverColors.ink,
   },
+
   small: {
     color: DriverColors.muted,
     fontSize: 12,
     marginTop: 2,
   },
+
   footer: {
     textAlign: 'center',
     color: DriverColors.muted,
     fontSize: 11,
     marginTop: 8,
   },
+
   empty: {
     color: DriverColors.muted,
     fontSize: 14,

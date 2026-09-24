@@ -62,12 +62,15 @@ export function ClientJourneyOverview({
         </View>
         <View>
           <Text style={styles.heroDate}>{journey.travelDates.toUpperCase()}</Text>
+
           <Text style={styles.heroTitle}>
             {/*{journey.destination}*/}Montego Bay
-            {'\n'}
-            <Text style={styles.heroTitleAccent}>in your own time.</Text>
           </Text>
-        </View>
+
+          <Text style={styles.heroTitleAccent}>
+            {'in your own time.'}
+          </Text>
+</View>
         {onViewItinerary ? (
           <Text accessibilityRole="button" onPress={onViewItinerary} style={styles.heroLink}>
             View itinerary →
@@ -218,6 +221,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.serif,
     fontStyle: 'italic',
     textAlign: 'right',
+    fontSize: 30,
     color: Palette.goldLight,
   },
   heroLink: {

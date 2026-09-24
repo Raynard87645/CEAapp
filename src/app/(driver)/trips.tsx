@@ -2,7 +2,6 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,21 +10,35 @@ import {
 } from 'react-native';
 
 import { DriverScreenShell } from '@/components/driver/top-bar';
-import { Card, DetailGrid, Eyebrow, PageTitle, Pill } from '@/components/driver/ui';
+import {
+  Card,
+  DetailGrid,
+  Eyebrow,
+  PageTitle,
+  Pill,
+} from '@/components/driver/ui';
+import { AppDialog } from '@/components/ui/app-dialog';
 import { DriverColors } from '@/constants/driver-colors';
 import { useDriver } from '@/context/driver-context';
-import { driverApi, type TripSummary } from '@/services/api/driver';
-import { coreTripDetails, ftsServiceDetails } from '@/utils/driver-trip-details';
+import {
+  driverApi,
+  type TripSummary,
+} from '@/services/api/driver';
+import {
+  coreTripDetails,
+  ftsServiceDetails,
+} from '@/utils/driver-trip-details';
 
 function TripCard({ trip }: { trip: TripSummary }) {
   return (
     <Card>
       <View style={styles.cardHead}>
-        <View style={{ flex: 1 }}>
+        <View style={styles.cardTitleWrap}>
           <Text style={styles.cardTitle}>{trip.clientName}</Text>
           <Text style={styles.tripCode}>{trip.tripCode}</Text>
         </View>
-        <Pill tone="gold">{trip.status.toUpperCase()}</Pill>
+
+        <Pill tone="green">{trip.status.toUpperCase()}</Pill>
       </View>
 
       <DetailGrid items={coreTripDetails(trip)} />
@@ -39,7 +52,11 @@ function TripCard({ trip }: { trip: TripSummary }) {
         </Text>
       </View>
 
-      <Pressable style={styles.primaryBtn} onPress={() => router.push('/(driver)/itinerary')}>
+      <Pressable
+        style={styles.primaryBtn}
+        onPress={() => router.push('/(driver)/itinerary')}
+        accessibilityRole="button"
+        accessibilityLabel={`View itinerary for ${trip.clientName}`}>
         <Text style={styles.primaryText}>View Itinerary</Text>
       </Pressable>
     </Card>
@@ -51,6 +68,12 @@ export default function DriverTripsScreen() {
   const [trips, setTrips] = useState<TripSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [dialog, setDialog] = useState({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
   const load = useCallback(async () => {
     setLoading(true);
 
@@ -58,7 +81,12 @@ export default function DriverTripsScreen() {
       const response = await driverApi.trips();
       setTrips(response.trips);
     } catch (error) {
-      Alert.alert('Unable to load trips', error instanceof Error ? error.message : 'Try again.');
+      setDialog({
+        visible: true,
+        title: 'Unable to load trips',
+        message:
+          error instanceof Error ? error.message : 'Try again.',
+      });
     } finally {
       setLoading(false);
     }
@@ -68,51 +96,103 @@ export default function DriverTripsScreen() {
     void load();
   }, [load]);
 
-  const visibleTrips = trips.length ? trips : dashboard?.activeTrip ? [dashboard.activeTrip] : [];
+  const visibleTrips = trips.length
+    ? trips
+    : dashboard?.activeTrip
+      ? [dashboard.activeTrip]
+      : [];
+
+  const totalTrips = visibleTrips.length;
+  const displayedTrips = visibleTrips.slice(0, 3);
+
+  const closeDialog = () => {
+    setDialog((current) => ({
+      ...current,
+      visible: false,
+    }));
+  };
 
   return (
     <DriverScreenShell>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}>
         <View style={styles.head}>
-          <View style={{ flex: 1, paddingRight: 12 }}>
+          <View style={styles.headCopy}>
             <Eyebrow>Assigned movements</Eyebrow>
-            <PageTitle title="Trips" subtitle="Read-only trip details from FTS" />
+
+            <PageTitle
+              title="Trips"
+              subtitle={`Read-only trip details from FTS.\nViewing ${displayedTrips.length} of ${totalTrips}`}
+            />
           </View>
-          <Pill tone="gold">{visibleTrips.length ? `${visibleTrips.length} ACTIVE` : 'NONE'}</Pill>
+
+          <Pill tone="green">
+            {visibleTrips.length ? `${visibleTrips.length} ACTIVE` : 'NONE'}
+          </Pill>
         </View>
 
         {loading ? (
-          <ActivityIndicator color={DriverColors.green} />
+          <View style={styles.loading}>
+            <ActivityIndicator color={DriverColors.green} />
+          </View>
         ) : visibleTrips.length ? (
-          visibleTrips.map((trip) => <TripCard key={trip.id} trip={trip} />)
+          displayedTrips.map((trip) => (
+            <TripCard key={trip.id} trip={trip} />
+          ))
         ) : (
           <Card>
             <Text style={styles.empty}>No trips assigned yet.</Text>
           </Card>
         )}
       </ScrollView>
+
+      <AppDialog
+        visible={dialog.visible}
+        title={dialog.title}
+        message={dialog.message}
+        confirmLabel="OK"
+        onConfirm={closeDialog}
+        onCancel={closeDialog}
+      />
     </DriverScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContent: {
+    paddingBottom: 24,
+  },
+
   head: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     marginBottom: 16,
   },
+
+  headCopy: {
+    flex: 1,
+    paddingRight: 12,
+  },
+
   cardHead: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
     marginBottom: 12,
   },
+
+  cardTitleWrap: {
+    flex: 1,
+  },
+
   cardTitle: {
     fontSize: 19,
     fontWeight: '600',
     color: DriverColors.ink,
   },
+
   tripCode: {
     marginTop: 4,
     fontSize: 12,
@@ -120,6 +200,7 @@ const styles = StyleSheet.create({
     color: DriverColors.gold,
     letterSpacing: 0.4,
   },
+
   prepNote: {
     backgroundColor: DriverColors.prepNote,
     borderLeftWidth: 3,
@@ -128,16 +209,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginVertical: 14,
   },
+
   prepTitle: {
     fontWeight: '700',
     color: DriverColors.ink,
     marginBottom: 4,
   },
+
   prepBody: {
     fontSize: 11,
     lineHeight: 16,
     color: DriverColors.ink,
   },
+
   primaryBtn: {
     backgroundColor: DriverColors.green,
     borderRadius: 14,
@@ -145,10 +229,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   primaryText: {
     color: '#fff',
     fontWeight: '800',
   },
+
+  loading: {
+    paddingVertical: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   empty: {
     color: DriverColors.muted,
     fontSize: 14,

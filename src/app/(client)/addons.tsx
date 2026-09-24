@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -14,13 +13,18 @@ import { AddonsCatalog } from '@/components/addons-catalog';
 import { AppHeader } from '@/components/app-header';
 import { CepAddonsScreen } from '@/components/cep/cep-addons-screen';
 import { AppButton } from '@/components/ui/app-button';
+import { AppDialog } from '@/components/ui/app-dialog';
 import { SuccessBanner } from '@/components/ui/success-banner';
 import {
   EyebrowText,
   SerifTitle,
 } from '@/components/ui/typography';
 import { isExperienceHost } from '@/constants/platforms';
-import { Layout, Palette, Spacing } from '@/constants/theme';
+import {
+  Layout,
+  Palette,
+  Spacing,
+} from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { useJourney } from '@/context/journey-context';
 import { api } from '@/services/api/client';
@@ -43,7 +47,11 @@ function ClientAddonsScreen({
 }) {
   const { bookingId } = useAuth();
 
-  const { avatarUri, pickAvatar, refreshUpdates } = useJourney();
+  const {
+    avatarUri,
+    pickAvatar,
+    refreshUpdates,
+  } = useJourney();
 
   const [addons, setAddons] = useState<AddOnItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,9 +63,36 @@ function ClientAddonsScreen({
   const [paying, setPaying] = useState(false);
 
   const [customTitle, setCustomTitle] = useState('');
-  const [customDetails, setCustomDetails] = useState('');
-  const [customSent, setCustomSent] = useState(false);
-  const [customSending, setCustomSending] = useState(false);
+  const [customDetails, setCustomDetails] =
+    useState('');
+  const [customSent, setCustomSent] =
+    useState(false);
+  const [customSending, setCustomSending] =
+    useState(false);
+
+  const [dialog, setDialog] = useState({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
+  const showDialog = (
+    title: string,
+    message = '',
+  ) => {
+    setDialog({
+      visible: true,
+      title,
+      message,
+    });
+  };
+
+  const closeDialog = () => {
+    setDialog((current) => ({
+      ...current,
+      visible: false,
+    }));
+  };
 
   const selectedAddon = addons.find(
     (addon) => addon.id === paymentId,
@@ -80,7 +115,7 @@ function ClientAddonsScreen({
     } catch (error) {
       console.error(error);
 
-      Alert.alert(
+      showDialog(
         'Unable to load add-ons',
         error instanceof Error
           ? error.message
@@ -95,9 +130,11 @@ function ClientAddonsScreen({
     void loadAddOns();
   }, [loadAddOns]);
 
-  const requestAddon = async (addonId: number) => {
+  const requestAddon = async (
+    addonId: number,
+  ) => {
     if (!bookingId) {
-      Alert.alert(
+      showDialog(
         'Booking unavailable',
         'Your booking could not be identified.',
       );
@@ -132,7 +169,7 @@ function ClientAddonsScreen({
     } catch (error) {
       console.error(error);
 
-      Alert.alert(
+      showDialog(
         'Request failed',
         error instanceof Error
           ? error.message
@@ -177,7 +214,7 @@ function ClientAddonsScreen({
     } catch (error) {
       console.error(error);
 
-      Alert.alert(
+      showDialog(
         'Request failed',
         error instanceof Error
           ? error.message
@@ -207,7 +244,10 @@ function ClientAddonsScreen({
 
   return (
     <View style={styles.screen}>
-      <AppHeader avatarUri={avatarUri} onAvatarPress={pickAvatar} />
+      <AppHeader
+        avatarUri={avatarUri}
+        onAvatarPress={pickAvatar}
+      />
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -272,7 +312,9 @@ function ClientAddonsScreen({
                 value={customTitle}
                 onChangeText={setCustomTitle}
                 placeholder="What would you like to arrange?"
-                placeholderTextColor={Palette.muted}
+                placeholderTextColor={
+                  Palette.muted
+                }
                 style={styles.input}
               />
             </View>
@@ -286,7 +328,9 @@ function ClientAddonsScreen({
                 value={customDetails}
                 onChangeText={setCustomDetails}
                 placeholder="Share timing, preferences, and any helpful details…"
-                placeholderTextColor={Palette.muted}
+                placeholderTextColor={
+                  Palette.muted
+                }
                 multiline
                 style={[
                   styles.input,
@@ -397,6 +441,15 @@ function ClientAddonsScreen({
           </View>
         </View>
       </Modal>
+
+      <AppDialog
+        visible={dialog.visible}
+        title={dialog.title}
+        message={dialog.message}
+        confirmLabel="OK"
+        onConfirm={closeDialog}
+        onCancel={closeDialog}
+      />
     </View>
   );
 }

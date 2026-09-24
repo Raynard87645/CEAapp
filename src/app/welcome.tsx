@@ -62,8 +62,9 @@ export default function WelcomeScreen() {
             {platform?.eyebrow ?? platformLabel.toUpperCase()}
           </EyebrowText>
           <SerifTitle size="page" style={styles.title}>
-            Welcome, {firstName}
-          </SerifTitle>
+          Welcome,{' '}
+          <Text style={styles.titleName}>{firstName}</Text>
+        </SerifTitle>
           <Text style={styles.subtitle}>{subtitle}</Text>
           {subtitleDetail ? <Text style={styles.subtitleDetail}>{subtitleDetail}</Text> : null}
 
@@ -115,6 +116,9 @@ const styles = StyleSheet.create({
   title: {
     textAlign: 'center',
     color: Palette.white,
+  },
+  titleName: {
+    color: Palette.goldLight,
   },
   subtitle: {
     textAlign: 'center',

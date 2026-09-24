@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   pillGreen: {
-    backgroundColor: '#e2eee8',
+    backgroundColor: '#effde6',
   },
   pillGold: {
     backgroundColor: '#f1e8d1',
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#eeeae1',
   },
   pillText: {
-    color: DriverColors.green,
+    color: '#3F6F2D',
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.5,

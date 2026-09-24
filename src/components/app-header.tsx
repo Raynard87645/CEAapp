@@ -1,9 +1,11 @@
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandHeader } from '@/components/brand-header';
 import { DrawerMenuButton } from '@/components/drawer-menu-button';
+import { ChatIcon } from '@/components/icons/chat-icon';
 import { Layout, Palette } from '@/constants/theme';
 
 type AppHeaderProps = {
@@ -12,6 +14,7 @@ type AppHeaderProps = {
 };
 
 export function AppHeader({ avatarUri, onAvatarPress }: AppHeaderProps) {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   return (
@@ -21,14 +24,36 @@ export function AppHeader({ avatarUri, onAvatarPress }: AppHeaderProps) {
           <DrawerMenuButton />
           <BrandHeader compact />
         </View>
+
         <View style={styles.actions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open messages"
+            onPress={() => router.push('/messagesScreen')}
+            style={({ pressed }) => [
+              styles.messageButton,
+              pressed && styles.pressed,
+            ]}>
+            <ChatIcon
+              size={21}
+              color={Palette.green}
+            />
+          </Pressable>
+
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Profile"
             onPress={onAvatarPress}
-            style={({ pressed }) => [styles.avatarButton, pressed && styles.pressed]}>
+            style={({ pressed }) => [
+              styles.avatarButton,
+              pressed && styles.pressed,
+            ]}>
             {avatarUri ? (
-              <Image source={{ uri: avatarUri }} style={styles.avatarImage} contentFit="cover" />
+              <Image
+                source={{ uri: avatarUri }}
+                style={styles.avatarImage}
+                contentFit="cover"
+              />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarPlaceholderText}>+</Text>
@@ -67,6 +92,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  messageButton: {
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarButton: {
     width: 38,

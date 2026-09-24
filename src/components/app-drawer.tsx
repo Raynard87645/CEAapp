@@ -3,6 +3,8 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandHeader } from '@/components/brand-header';
+import { CalendarIcon } from '@/components/icons/calendar-icon';
+import { ChatIcon } from '@/components/icons/chat-icon';
 import { getDrawerLinksForRole, getPlatformConfig } from '@/constants/platforms';
 import { Fonts, Palette, Spacing } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
@@ -76,8 +78,26 @@ export function AppDrawer({ visible, onClose, onLogout }: AppDrawerProps) {
                         active && styles.navItemActive,
                         pressed && styles.pressed,
                       ]}>
-                      <Text style={[styles.navIcon, active && styles.navIconActive]}>{link.icon}</Text>
-                      <Text style={[styles.navLabel, active && styles.navLabelActive]}>{link.label}</Text>
+                      {link.icon === 'calendar' ? (
+                      <CalendarIcon
+                        size={active ? 22 : 21}
+                        color={active ? Palette.green : Palette.muted}
+                      />
+                    ) : link.icon === 'chat' ? (
+                      <ChatIcon
+                        size={active ? 22 : 21}
+                        color={active ? Palette.green : Palette.muted}
+                      />
+                    ) : (
+                      <Text
+                        style={[
+                          styles.navIcon,
+                          active && styles.navIconActive,
+                        ]}>
+                        {link.icon || '•'}
+                      </Text>
+                    )}
+                    <Text style={[styles.navLabel, active && styles.navLabelActive]}>{link.label}</Text>
                     </Pressable>
                   );
                 })}

@@ -1,6 +1,11 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { BookingsListScreen } from '@/components/cep/bookings-list-screen';
@@ -28,9 +33,11 @@ function ClientHomeScreen() {
   const { bookingId } = useAuth();
   const { avatarUri, pickAvatar } = useJourney();
 
-  const [journey, setJourney] = useState<JourneySummary | null>(null);
+  const [journey, setJourney] =
+    useState<JourneySummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] =
+    useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -38,7 +45,9 @@ function ClientHomeScreen() {
     async function loadJourney() {
       if (!bookingId) {
         if (active) {
-          setError('No booking is linked to this login.');
+          setError(
+            'No booking is linked to this login.',
+          );
           setLoading(false);
         }
 
@@ -49,7 +58,8 @@ function ClientHomeScreen() {
         setLoading(true);
         setError(null);
 
-        const response = await api.bookingOverview(bookingId);
+        const response =
+          await api.bookingOverview(bookingId);
 
         if (active) {
           setJourney(response.journey);
@@ -78,7 +88,10 @@ function ClientHomeScreen() {
 
   return (
     <View style={styles.screen}>
-      <AppHeader avatarUri={avatarUri} onAvatarPress={pickAvatar} />
+      <AppHeader
+        avatarUri={avatarUri}
+        onAvatarPress={pickAvatar}
+      />
 
       {loading ? (
         <View style={styles.center}>
@@ -91,8 +104,12 @@ function ClientHomeScreen() {
       ) : journey ? (
         <ClientJourneyOverview
           journey={journey}
-          onViewItinerary={() => router.navigate('/itinerary')}
-          onExploreAddOns={() => router.navigate('/addons')}
+          onViewItinerary={() =>
+            router.navigate('/itinerary')
+          }
+          onExploreAddOns={() =>
+            router.navigate('/addons')
+          }
         />
       ) : null}
     </View>

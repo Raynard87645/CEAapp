@@ -59,24 +59,29 @@ export default function LandingScreen() {
             YOUR JOURNEY, CONSIDERED
           </EyebrowText>
 
-          <SerifTitle size="hero" style={styles.title}>
-            Jamaica,{'\n'}
-            <Text style={styles.titleAccent}>
-              privately yours.
-            </Text>
+          <View style={styles.titleBlock}>
+          <SerifTitle size="hero">
+            Jamaica,
           </SerifTitle>
+
+          <Text style={styles.titleAccent}>
+          privately yours.
+        </Text>
+        </View>
 
           <Text style={styles.copy}>
             One private app for every part of your Tour Jamaica
             experience—from arrival to the final drive.
           </Text>
 
+          <View style={styles.buttonContainer}>
           <AppButton
             label="Log In"
             variant="landing"
             onPress={() => router.push('/login')}
             accessibilityHint="Opens the private access login screen"
           />
+        </View>
         </View>
 
         <View style={styles.footer}>
@@ -116,7 +121,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.five,
   },
 
-  title: {
+ titleBlock: {
     marginTop: 13,
     marginBottom: 30,
   },
@@ -125,6 +130,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.serif,
     color: Palette.goldLight,
     fontStyle: 'italic',
+    textAlign: 'right',
+    fontSize: 52,
+    lineHeight: 50,
   },
 
   copy: {
@@ -133,33 +141,39 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     color: Palette.storyText,
     maxWidth: 460,
-    marginBottom: Spacing.two,
+    marginBottom: Spacing.six,
+    alignSelf: 'center',
   },
 
-  footer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 'auto',
-  },
+footer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 8,
+  marginTop: 'auto',
+  paddingVertical: 12,
+},
 
-  footerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
+footerItem: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 12,
+},
 
-  footerText: {
-    fontSize: 8,
-    letterSpacing: 2,
-    color: Palette.storyFooter,
-    fontWeight: '600',
-  },
+footerText: {
+  fontSize: 8,
+  letterSpacing: 2,
+  color: Palette.storyFooter,
+  fontWeight: '900',
+},
 
-  goldLine: {
-    width: 30,
-    height: 1,
-    backgroundColor: Palette.gold,
-  },
+goldLine: {
+  width: 18,
+  height: 1,
+  backgroundColor: Palette.gold,
+},
+  
+  buttonContainer: {
+  alignItems: 'center',
+},
 });

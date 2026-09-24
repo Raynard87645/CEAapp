@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +10,7 @@ import {
 
 import { AppHeader } from '@/components/app-header';
 import { AppButton } from '@/components/ui/app-button';
+import { AppDialog } from '@/components/ui/app-dialog';
 import { SuccessBanner } from '@/components/ui/success-banner';
 import {
   EyebrowText,
@@ -43,10 +43,41 @@ function initialsFromName(name: string): string {
 
 export default function MessagesScreen() {
   const { avatarUri, pickAvatar, refreshUpdates } = useJourney();
-
   const { bookingId } = useAuth();
 
-  const [journey, setJourney] = useState<JourneySummary | null>(null);
+  const [journey, setJourney] =
+    useState<JourneySummary | null>(null);
+
+  const [selectedOption, setSelectedOption] =
+    useState<string>(MESSAGE_QUICK_OPTIONS[0]);
+
+  const [message, setMessage] = useState('');
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const [dialog, setDialog] = useState({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
+  const showDialog = (
+    title: string,
+    message = '',
+  ) => {
+    setDialog({
+      visible: true,
+      title,
+      message,
+    });
+  };
+
+  const closeDialog = () => {
+    setDialog((current) => ({
+      ...current,
+      visible: false,
+    }));
+  };
 
   useEffect(() => {
     let active = true;
@@ -60,7 +91,9 @@ export default function MessagesScreen() {
       }
 
       try {
-        const response = await api.bookingOverview(bookingId);
+        const response =
+          await api.bookingOverview(bookingId);
+
         if (active) {
           setJourney(response.journey);
         }
@@ -79,20 +112,17 @@ export default function MessagesScreen() {
   }, [bookingId]);
 
   const ceaName = journey?.ceaName ?? 'Your CEA';
-  const ceaInitials = useMemo(() => initialsFromName(ceaName), [ceaName]);
 
-  const [selectedOption, setSelectedOption] =
-    useState<string>(MESSAGE_QUICK_OPTIONS[0]);
-
-  const [message, setMessage] = useState('');
-  const [sent, setSent] = useState(false);
-  const [sending, setSending] = useState(false);
+  const ceaInitials = useMemo(
+    () => initialsFromName(ceaName),
+    [ceaName],
+  );
 
   const handleSend = async () => {
     const trimmedMessage = message.trim();
 
     if (!bookingId) {
-      Alert.alert(
+      showDialog(
         'Booking unavailable',
         'We could not determine your booking.',
       );
@@ -101,7 +131,7 @@ export default function MessagesScreen() {
     }
 
     if (!trimmedMessage) {
-      Alert.alert(
+      showDialog(
         'Message required',
         'Please enter a message for your CEA.',
       );
@@ -139,7 +169,7 @@ export default function MessagesScreen() {
         error,
       );
 
-      Alert.alert(
+      showDialog(
         'Unable to send message',
         'Please try again.',
       );
@@ -150,7 +180,10 @@ export default function MessagesScreen() {
 
   return (
     <View style={styles.screen}>
-      <AppHeader avatarUri={avatarUri} onAvatarPress={pickAvatar} />
+      <AppHeader
+        avatarUri={avatarUri}
+        onAvatarPress={pickAvatar}
+      />
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -164,7 +197,8 @@ export default function MessagesScreen() {
           <SerifTitle size="page">
             Message{' '}
             <Text style={styles.accent}>
-              {journey?.ceaName?.split(' ')[0] ?? 'your CEA'}
+              {journey?.ceaName?.split(' ')[0] ??
+                'your CEA'}
             </Text>
           </SerifTitle>
 
@@ -224,16 +258,14 @@ export default function MessagesScreen() {
                   }
                   style={[
                     styles.option,
-                    selectedOption ===
-                      option &&
+                    selectedOption === option &&
                       styles.optionActive,
                   ]}
                 >
                   <Text
                     style={[
                       styles.optionText,
-                      selectedOption ===
-                        option &&
+                      selectedOption === option &&
                         styles.optionTextActive,
                     ]}
                   >
@@ -251,10 +283,11 @@ export default function MessagesScreen() {
           <TextInput
             value={message}
             onChangeText={setMessage}
-            placeholder={`Add a note for ${journey?.ceaName?.split(' ')[0] ?? 'your CEA'}…`}
-            placeholderTextColor={
-              Palette.muted
-            }
+            placeholder={`Add a note for ${
+              journey?.ceaName?.split(' ')[0] ??
+              'your CEA'
+            }…`}
+            placeholderTextColor={Palette.muted}
             multiline
             editable={!sending}
             maxLength={2000}
@@ -274,9 +307,7 @@ export default function MessagesScreen() {
               !bookingId
             }
             loading={sending}
-            onPress={() =>
-              void handleSend()
-            }
+            onPress={() => void handleSend()}
           />
 
           <Text style={styles.formNote}>
@@ -286,6 +317,15 @@ export default function MessagesScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      <AppDialog
+        visible={dialog.visible}
+        title={dialog.title}
+        message={dialog.message}
+        confirmLabel="OK"
+        onConfirm={closeDialog}
+        onCancel={closeDialog}
+      />
     </View>
   );
 }

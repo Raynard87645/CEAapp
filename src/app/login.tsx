@@ -73,7 +73,7 @@ export default function LoginScreen() {
           <BrandHeader style={styles.brand} />
 
           <View style={styles.card}>
-            <EyebrowText>GROUND TRANSPORT ACCESS</EyebrowText>
+            <EyebrowText>PRIVATE ACCESS</EyebrowText>
             <SerifTitle size="page" style={styles.title}>
               Welcome
             </SerifTitle>

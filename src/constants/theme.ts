@@ -79,7 +79,7 @@ export const Typography = {
   heroTitle: {
     fontSize: 52,
     fontWeight: '400' as const,
-    lineHeight: 48,
+    lineHeight: 58,
     fontFamily: Fonts.serif,
   },
   pageTitle: {

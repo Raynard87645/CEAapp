@@ -232,7 +232,7 @@ export function AddonsCatalog({
                 addon.status ===
                   'Pending Review' ? (
                   <AppButton
-                    label="With your CEA"
+                    label="Request Sent to CEA"
                     variant="outline"
                     disabled
                   />

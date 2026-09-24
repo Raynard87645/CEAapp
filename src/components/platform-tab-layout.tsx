@@ -1,9 +1,10 @@
-import { useMemo } from 'react';
 import { Tabs, useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CalendarIcon } from '@/components/icons/calendar-icon';
+import { ChatIcon } from '@/components/icons/chat-icon';
 import type { AppRole, PlatformTab } from '@/constants/platforms';
 import { getPlatformHomeRoute } from '@/constants/platforms';
 import { Layout, Palette } from '@/constants/theme';
@@ -34,9 +35,21 @@ function DesignTabBar({ state, descriptors, navigation, tabs }: DesignTabBarProp
             accessibilityState={{ selected: focused }}
             onPress={() => navigation.navigate(route.name)}
             style={styles.tabButton}>
-            <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>
-              {tab?.icon ?? '•'}
-            </Text>
+            {tab?.icon === 'calendar' ? (
+              <CalendarIcon
+                size={focused ? 22 : 21}
+                color={focused ? Palette.green : Palette.muted}
+              />
+            ) : tab?.icon === 'chat' ? (
+              <ChatIcon
+                size={focused ? 22 : 21}
+                color={focused ? Palette.green : Palette.muted}
+              />
+            ) : (
+              <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>
+                {tab?.icon ?? '•'}
+              </Text>
+            )}
             <Text style={[styles.tabLabel, focused && styles.tabLabelFocused]}>{label}</Text>
             {focused ? <View style={styles.activeDash} /> : null}
           </Pressable>

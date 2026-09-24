@@ -31,10 +31,6 @@ export default function UpdatesScreen() {
     pickAvatar,
   } = useJourney();
 
-  /**
-   * Refresh the client's updates every time
-   * this screen becomes active.
-   */
   useFocusEffect(
     useCallback(() => {
       void refreshUpdates();
@@ -108,14 +104,10 @@ export default function UpdatesScreen() {
                 disabled={!update.unread}
                 style={({ pressed }) => [
                   styles.item,
-
                   update.unread &&
                     styles.itemUnread,
-
-                  highlightId ===
-                    update.id &&
+                  highlightId === update.id &&
                     styles.itemHighlight,
-
                   pressed &&
                     update.unread &&
                     styles.itemPressed,
@@ -129,51 +121,33 @@ export default function UpdatesScreen() {
                   ]}
                 />
 
-                <View
-                  style={styles.itemContent}
-                >
-                  <View
-                    style={styles.itemTop}
-                  >
+                <View style={styles.itemContent}>
+                  <View style={styles.itemTop}>
                     <Text
-                      style={
-                        styles.itemFromLabel
-                      }
+                      style={styles.itemFromLabel}
                     >
                       FROM
                     </Text>
 
-                    <Text
-                      style={styles.itemTime}
-                    >
+                    <Text style={styles.itemTime}>
                       {update.time}
                     </Text>
                   </View>
 
-                  <Text
-                    style={styles.itemFrom}
-                  >
+                  <Text style={styles.itemFrom}>
                     {update.from}
                   </Text>
 
-                  <Text
-                    style={styles.itemKind}
-                  >
+                  <Text style={styles.itemKind}>
                     {update.kind}
                   </Text>
 
-                  <Text
-                    style={styles.itemMessage}
-                  >
+                  <Text style={styles.itemMessage}>
                     {update.message}
                   </Text>
 
                   {update.unread && (
-                    <Text
-                      style={
-                        styles.unreadLabel
-                      }
-                    >
+                    <Text style={styles.unreadLabel}>
                       TAP TO MARK AS READ
                     </Text>
                   )}

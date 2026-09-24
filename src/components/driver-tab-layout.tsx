@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CalendarIcon } from '@/components/icons/calendar-icon';
 import { DriverColors } from '@/constants/driver-colors';
 import type { PlatformTab } from '@/constants/platforms';
 import { getPlatformHomeRoute } from '@/constants/platforms';
@@ -33,7 +34,16 @@ function DriverTabBar({ state, descriptors, navigation, tabs }: DriverTabBarProp
             accessibilityState={{ selected: focused }}
             onPress={() => navigation.navigate(route.name)}
             style={styles.tabButton}>
-            <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>{tab?.icon ?? '•'}</Text>
+            {tab?.icon === 'calendar' ? (
+            <CalendarIcon
+              size={focused ? 22 : 21}
+              color={focused ? DriverColors.green : '#858b87'}
+            />
+          ) : (
+            <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>
+              {tab?.icon ?? '•'}
+            </Text>
+          )}
             <Text style={[styles.tabLabel, focused && styles.tabLabelFocused]}>{label}</Text>
             {focused ? <View style={styles.activeDash} /> : null}
           </Pressable>
@@ -77,7 +87,8 @@ export function DriverTabLayout({ tabs }: DriverTabLayoutProps) {
         sceneStyle: { backgroundColor: DriverColors.ivory },
       }}>
       {tabs.map((tab) => (
-        <Tabs.Screen key={tab.name} name={tab.name} options={{ title: tab.title }} />
+        <Tabs.Screen key={tab.name} name={tab.name} options={{ title: tab.title }} 
+/>
       ))}
     </Tabs>
   );

@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { ReactNode, useState } from 'react';
 import {
   Image,
@@ -12,11 +13,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DrawerMenuButton } from '@/components/drawer-menu-button';
 import { Card, Pill } from '@/components/driver/ui';
+import { ChatIcon } from '@/components/icons/chat-icon';
 import { DriverColors } from '@/constants/driver-colors';
 import { useAuth } from '@/context/auth-context';
 import { useDriver } from '@/context/driver-context';
 
 export function DriverTopBar() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const { fullName, firstName } = useAuth();
   const { dashboard } = useDriver();
@@ -43,19 +46,34 @@ export function DriverTopBar() {
           </View>
         </View>
 
+        <View style={styles.headerActions}>
         <Pressable
-          style={styles.notificationBtn}
-          onPress={() => setNotificationsOpen(true)}
-          accessibilityLabel="Open notifications">
-          <Text style={styles.notificationIcon}>🔔</Text>
-          {unreadCount > 0 ? (
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </Text>
-            </View>
-          ) : null}
+          style={styles.actionBtn}
+          onPress={() => router.push('/messagesScreen')}
+          accessibilityRole="button"
+          accessibilityLabel="Open messages">
+          <ChatIcon
+            size={21}
+            color={DriverColors.green}
+          />
         </Pressable>
+
+          <Pressable
+            style={styles.actionBtn}
+            onPress={() => setNotificationsOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Open notifications">
+            <Text style={styles.notificationIcon}>🔔</Text>
+
+            {unreadCount > 0 ? (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Text>
+              </View>
+            ) : null}
+          </Pressable>
+        </View>
 
         <Image
           source={{
@@ -159,11 +177,26 @@ const styles = StyleSheet.create({
   },
   brandSub: {
     color: DriverColors.muted,
-    fontSize: 12,
+    fontSize: 10,
+    lineHeight: 14,
+  },
+
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+
+  actionBtn: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
   notificationBtn: {
-    width: 38,
-    height: 38,
+    width: 36,
+    height: 36,
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
