@@ -1,3 +1,13 @@
+import { AppDialog } from '@/components/ui/app-dialog';
+import { DriverColors } from '@/constants/driver-colors';
+import { useAuth } from '@/context/auth-context';
+import { api } from '@/services/api/client';
+import { driverApi } from '@/services/api/driver';
+import type {
+  Message,
+  MessageConversationType,
+  MessageParticipant,
+} from '@/services/api/types';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -13,27 +23,24 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { AppDialog } from '@/components/ui/app-dialog';
-import { DriverColors } from '@/constants/driver-colors';
-import { useAuth } from '@/context/auth-context';
-import { api } from '@/services/api/client';
-import { driverApi } from '@/services/api/driver';
-import type { MessageParticipant } from '@/services/api/types';
-
-type ChatMessage = {
-  id: string;
-  mine: boolean;
-  text: string;
-  time: string;
-};
+import Svg, { Path } from 'react-native-svg';
 
 type ChatContact = MessageParticipant & {
-  messages: ChatMessage[];
+  messages: Message[];
 };
 
-function currentTime() {
-  return new Date()
+function formatMessageTime(value: string | null) {
+  if (!value) {
+    return '';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  return date
     .toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
@@ -46,7 +53,7 @@ export default function MessagesScreen() {
   const insets = useSafeAreaInsets();
   const { role } = useAuth();
 
-  const messageListRef = useRef<FlatList<ChatMessage>>(null);
+  const messageListRef = useRef<FlatList<Message>>(null);
 
   const [contacts, setContacts] = useState<ChatContact[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
@@ -54,6 +61,8 @@ export default function MessagesScreen() {
   const [message, setMessage] = useState('');
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [sending, setSending] = useState(false);
 
   const [dialog, setDialog] = useState<{
     visible: boolean;
@@ -83,6 +92,24 @@ export default function MessagesScreen() {
         .includes(query),
     );
   }, [contacts, search]);
+
+  const conversationType = useMemo<MessageConversationType | null>(() => {
+    if (!activeContact) {
+      return null;
+    }
+
+    if (role === 'client') {
+      return 'client_driver';
+    }
+
+    if (role === 'driver') {
+      return activeContact.role === 'Client'
+        ? 'client_driver'
+        : 'driver_cea';
+    }
+
+    return null;
+  }, [activeContact, role]);
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener(
@@ -172,6 +199,90 @@ export default function MessagesScreen() {
     };
   }, [role]);
 
+  useEffect(() => {
+    if (!activeContact || !conversationType) {
+      return;
+    }
+
+    const type = conversationType;
+
+    let cancelled = false;
+
+    async function loadMessages() {
+      setMessagesLoading(true);
+
+      try {
+        const response =
+          role === 'driver'
+            ? await driverApi.messages(type)
+            : await api.messages();
+
+        if (cancelled) {
+          return;
+        }
+
+        setContacts((current) =>
+          current.map((contact) =>
+            contact.id === activeContact.id
+              ? {
+                  ...contact,
+                  messages: response.messages,
+                }
+              : contact,
+          ),
+        );
+
+        if (role === 'driver') {
+          await driverApi.markMessagesRead(type);
+        } else {
+          await api.markMessagesRead();
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        setTimeout(() => {
+          messageListRef.current?.scrollToEnd({
+            animated: false,
+          });
+        }, 50);
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        console.error(
+          'MESSAGES LOAD ERROR:',
+          error,
+        );
+
+        setDialog({
+          visible: true,
+          title: 'Conversation unavailable',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Unable to load this conversation.',
+        });
+      } finally {
+        if (!cancelled) {
+          setMessagesLoading(false);
+        }
+      }
+    }
+
+    loadMessages();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeContact?.id,
+    conversationType,
+    role,
+  ]);
+
   function selectContact(contactId: string) {
     setActiveChatId(contactId);
 
@@ -182,41 +293,71 @@ export default function MessagesScreen() {
     }, 50);
   }
 
-  function sendMessage() {
+  async function sendMessage() {
     const trimmed = message.trim();
 
-    if (!trimmed || !activeContact) {
+    if (
+      !trimmed ||
+      !activeContact ||
+      !conversationType ||
+      sending
+    ) {
       return;
     }
 
-    const nextMessage: ChatMessage = {
-      id: `message-${Date.now()}`,
-      mine: true,
-      text: trimmed,
-      time: currentTime(),
-    };
+    const type = conversationType;
 
-    setContacts((current) =>
-      current.map((contact) =>
-        contact.id === activeContact.id
-          ? {
-              ...contact,
-              messages: [
-                ...contact.messages,
-                nextMessage,
-              ],
-            }
-          : contact,
-      ),
-    );
+    setSending(true);
 
-    setMessage('');
+    try {
+      const response =
+        role === 'driver'
+          ? await driverApi.sendMessage(
+              type,
+              trimmed,
+            )
+          : await api.sendMessage(trimmed);
 
-    setTimeout(() => {
-      messageListRef.current?.scrollToEnd({
-        animated: true,
+      const sentMessage = response.message;
+
+      setContacts((current) =>
+        current.map((contact) =>
+          contact.id === activeContact.id
+            ? {
+                ...contact,
+                messages: [
+                  ...contact.messages,
+                  sentMessage,
+                ],
+              }
+            : contact,
+        ),
+      );
+
+      setMessage('');
+
+      setTimeout(() => {
+        messageListRef.current?.scrollToEnd({
+          animated: true,
+        });
+      }, 80);
+    } catch (error) {
+      console.error(
+        'SEND MESSAGE ERROR:',
+        error,
+      );
+
+      setDialog({
+        visible: true,
+        title: 'Message not sent',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Unable to send your message. Please try again.',
       });
-    }, 80);
+    } finally {
+      setSending(false);
+    }
   }
 
   function handleAttachment() {
@@ -257,7 +398,16 @@ export default function MessagesScreen() {
             onPress={() => router.back()}
             accessibilityRole="button"
             accessibilityLabel="Close messages">
-            <Text style={styles.backText}>←</Text>
+            <Svg width={20} height={20} viewBox="0 0 24 24">
+              <Path
+                d="M15 5L8 12L15 19"
+                stroke="#FFFFFF"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </Svg>
           </Pressable>
 
           <View style={styles.chatHeaderCopy}>
@@ -383,7 +533,9 @@ export default function MessagesScreen() {
               <FlatList
                 ref={messageListRef}
                 data={activeContact.messages}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) =>
+                  String(item.id)
+                }
                 style={styles.messages}
                 contentContainerStyle={styles.messageContent}
                 showsVerticalScrollIndicator={false}
@@ -392,47 +544,60 @@ export default function MessagesScreen() {
                 ListEmptyComponent={
                   <View style={styles.emptyConversation}>
                     <Text style={styles.emptyConversationTitle}>
-                      No messages yet
+                      {messagesLoading
+                        ? 'Loading messages...'
+                        : 'No messages yet'}
                     </Text>
 
-                    <Text style={styles.emptyConversationText}>
-                      Your conversation history will appear here.
-                    </Text>
+                    {!messagesLoading && (
+                      <Text style={styles.emptyConversationText}>
+                        Your conversation history will appear here.
+                      </Text>
+                    )}
                   </View>
                 }
-                renderItem={({ item }) => (
-                  <View
-                    style={[
-                      styles.messageBlock,
-                      item.mine &&
-                        styles.messageBlockMine,
-                    ]}>
+                renderItem={({ item }) => {
+                  const mine =
+                    role === 'driver'
+                      ? item.senderType === 'driver'
+                      : item.senderType === 'client';
+
+                  return (
                     <View
                       style={[
-                        styles.messageBubble,
-                        item.mine &&
-                          styles.messageBubbleMine,
+                        styles.messageBlock,
+                        mine &&
+                          styles.messageBlockMine,
                       ]}>
+                      <View
+                        style={[
+                          styles.messageBubble,
+                          mine &&
+                            styles.messageBubbleMine,
+                        ]}>
+                        <Text
+                          style={[
+                            styles.messageText,
+                            mine &&
+                              styles.messageTextMine,
+                          ]}>
+                          {item.body}
+                        </Text>
+                      </View>
+
                       <Text
                         style={[
-                          styles.messageText,
-                          item.mine &&
-                            styles.messageTextMine,
+                          styles.messageTime,
+                          mine &&
+                            styles.messageTimeMine,
                         ]}>
-                        {item.text}
+                        {formatMessageTime(
+                          item.createdAt,
+                        )}
                       </Text>
                     </View>
-
-                    <Text
-                      style={[
-                        styles.messageTime,
-                        item.mine &&
-                          styles.messageTimeMine,
-                      ]}>
-                      {item.time}
-                    </Text>
-                  </View>
-                )}
+                  );
+                }}
                 onContentSizeChange={() =>
                   messageListRef.current?.scrollToEnd({
                     animated: false,
@@ -460,6 +625,7 @@ export default function MessagesScreen() {
                     textAlignVertical="top"
                     scrollEnabled
                     returnKeyType="default"
+                    editable={!sending}
                     onFocus={() => {
                       setTimeout(() => {
                         messageListRef.current?.scrollToEnd({
@@ -487,14 +653,18 @@ export default function MessagesScreen() {
                   <Pressable
                     style={[
                       styles.sendButton,
-                      !message.trim() &&
+                      (!message.trim() || sending) &&
                         styles.sendButtonDisabled,
                     ]}
                     onPress={sendMessage}
-                    disabled={!message.trim()}
+                    disabled={
+                      !message.trim() || sending
+                    }
                     accessibilityRole="button"
                     accessibilityLabel="Send message">
-                    <Text style={styles.sendText}>➤</Text>
+                    <Text style={styles.sendText}>
+                      {sending ? '…' : '➤'}
+                    </Text>
                   </Pressable>
                 </View>
 
@@ -546,21 +716,16 @@ const styles = StyleSheet.create({
   },
 
   backButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 11,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.27)',
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  width: 38,
+  height: 38,
+  borderRadius: 11,
+  borderWidth: 1,
+  borderColor: 'rgba(255,255,255,0.27)',
+  backgroundColor: 'rgba(255,255,255,0.07)',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
 
-  backText: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    lineHeight: 22,
-  },
 
   chatHeaderCopy: {
     flex: 1,

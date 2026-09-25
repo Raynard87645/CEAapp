@@ -118,15 +118,7 @@ export default function DriverUpdatesScreen() {
       setLocation('');
       setPhotoUri(null);
 
-      showDialog(
-        'Update sent',
-        'Your update has been sent to FTS.',
-      );
-    } catch (error) {
-      showDialog(
-        'Unable to post update',
-        error instanceof Error ? error.message : 'Try again.',
-      );
+
     } finally {
       setSubmitting(false);
     }

@@ -1,4 +1,10 @@
 import { apiRequest } from '@/services/api/client';
+import type {
+  MessageConversationType,
+  MessageParticipant,
+  MessagesResponse,
+  SendMessageResponse,
+} from '@/services/api/types';
 
 export type TripSummary = {
   id: number;
@@ -132,15 +138,6 @@ export type DriverNotification = {
   createdAt?: string;
 };
 
-export type MessageParticipant = {
-  id: string;
-  name: string;
-  role: string;
-  initials: string;
-  tripId: number;
-  tripCode: string;
-};
-
 export type DriverDashboard = {
   driver: {
     id: number;
@@ -164,13 +161,39 @@ export const driverApi = {
 
   trips: () => apiRequest<{ trips: TripSummary[] }>('/driver/trips'),
 
-  trip: (tripId: number) => apiRequest<{ trip: TripSummary }>(`/driver/trips/${tripId}`),
+  trip: (tripId: number) =>
+    apiRequest<{ trip: TripSummary }>(`/driver/trips/${tripId}`),
 
   messageParticipants: () =>
-  apiRequest<{ participants: MessageParticipant[] }>(
-    '/driver/messages/participants',
-  ),
-  
+    apiRequest<{ participants: MessageParticipant[] }>(
+      '/driver/messages/participants',
+    ),
+
+  messages: (type: MessageConversationType) =>
+    apiRequest<MessagesResponse>(
+      `/driver/messages?type=${encodeURIComponent(type)}`,
+    ),
+
+  sendMessage: (
+    type: MessageConversationType,
+    message: string,
+  ) =>
+    apiRequest<SendMessageResponse>('/driver/messages', {
+      method: 'POST',
+      body: {
+        type,
+        message,
+      },
+    }),
+
+  markMessagesRead: (type: MessageConversationType) =>
+    apiRequest<{ success: boolean }>('/driver/messages/read', {
+      method: 'POST',
+      body: {
+        type,
+      },
+    }),
+
   itinerary: (tripId: number) =>
     apiRequest<{
       itinerary: {
@@ -231,14 +254,20 @@ export const driverApi = {
     ),
 
   requestCheckIn: (tripId: number) =>
-    apiRequest<DriverShiftResponse>(`/driver/trips/${tripId}/check-in/request`, {
-      method: 'POST',
-    }),
+    apiRequest<DriverShiftResponse>(
+      `/driver/trips/${tripId}/check-in/request`,
+      {
+        method: 'POST',
+      },
+    ),
 
   requestCheckOut: (tripId: number) =>
-    apiRequest<DriverShiftResponse>(`/driver/trips/${tripId}/check-out/request`, {
-      method: 'POST',
-    }),
+    apiRequest<DriverShiftResponse>(
+      `/driver/trips/${tripId}/check-out/request`,
+      {
+        method: 'POST',
+      },
+    ),
 
   requestEndTrip: (tripId: number) =>
     apiRequest<{
@@ -291,9 +320,12 @@ export const driverApi = {
       } as unknown as Blob);
     }
 
-    return apiRequest<{ report: DriverReport }>(`/driver/trips/${tripId}/reports`, {
-      method: 'POST',
-      body: form,
-    });
+    return apiRequest<{ report: DriverReport }>(
+      `/driver/trips/${tripId}/reports`,
+      {
+        method: 'POST',
+        body: form,
+      },
+    );
   },
 };

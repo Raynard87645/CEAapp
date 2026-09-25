@@ -2,7 +2,22 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 import { AUTH_TOKEN_KEY, getApiBaseUrl } from '@/config/api';
-import type { ApiError } from '@/services/api/types';
+import type {
+  AddOnItem,
+  AddOnStatus,
+  ApiError,
+  BookingAddOnsResponse,
+  BookingListItem,
+  BookingOverviewResponse,
+  ItineraryEvent,
+  JourneySummary,
+  LoginResponse,
+  MeResponse,
+  MessageParticipant,
+  MessagesResponse,
+  SendMessageResponse,
+  UpdateItem,
+} from '@/services/api/types';
 
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
@@ -115,7 +130,7 @@ export async function apiRequest<T>(
       throw new Error(
         `Cannot reach the Tour Jamaica API at ${baseUrl}. ` +
           (__DEV__
-            ? 'Start the backend on port 8001 (not Expo’s 8081): cd ../tjgt && php artisan serve --host=0.0.0.0 --port=8001. If using a Mac-only hostname in EXPO_PUBLIC_API_URL, the app auto-swaps to your Expo LAN IP in dev — ensure your phone and Mac are on the same Wi‑Fi.'
+            ? 'Start the backend on port 8001 (not Expo’s 8081): cd ../tjgt && php artisan serve --host=0.0.0.0 --port=8001. If using a Mac-only hostname in EXPO_PUBLIC_API_URL, the app auto-swaps to your Expo LAN IP in dev — ensure your phone and Mac are on the same Wi-Fi.'
             : 'Check your internet connection and try again.'),
       );
     }
@@ -148,9 +163,7 @@ export const api = {
     lastName: string,
     loginToken: string,
   ) =>
-    apiRequest<
-      import('@/services/api/types').LoginResponse
-    >('/login', {
+    apiRequest<LoginResponse>('/login', {
       method: 'POST',
       auth: false,
       body: {
@@ -169,37 +182,29 @@ export const api = {
     ),
 
   me: () =>
-    apiRequest<
-      import('@/services/api/types').MeResponse
-    >('/me'),
+    apiRequest<MeResponse>('/me'),
 
   bookings: () =>
     apiRequest<{
-      bookings:
-        import('@/services/api/types').BookingListItem[];
+      bookings: BookingListItem[];
     }>('/bookings'),
 
   bookingOverview: (
     bookingId: number,
   ) =>
-    apiRequest<
-      import('@/services/api/types').BookingOverviewResponse
-    >(
+    apiRequest<BookingOverviewResponse>(
       `/bookings/${bookingId}`,
     ),
 
   bookingItinerary: (bookingId: number) =>
     apiRequest<{
-      itinerary: import('@/services/api/types').ItineraryEvent[];
+      itinerary: ItineraryEvent[];
     }>(`/bookings/${bookingId}/itinerary`),
-
 
   bookingAddOns: (
     bookingId: number,
   ) =>
-    apiRequest<
-      import('@/services/api/types').BookingAddOnsResponse
-    >(
+    apiRequest<BookingAddOnsResponse>(
       `/bookings/${bookingId}/add-ons`,
     ),
 
@@ -219,8 +224,7 @@ export const api = {
         title: string;
         description: string | null;
         requestedDate: string | null;
-        status:
-          import('@/services/api/types').AddOnStatus;
+        status: AddOnStatus;
         notApprovedReason: string | null;
       };
     }>(
@@ -229,35 +233,43 @@ export const api = {
         method: 'POST',
         body: {
           title: payload.title,
-          description:
-            payload.description,
-          requested_date:
-            payload.requestedDate,
-          client_notes:
-            payload.clientNotes,
+          description: payload.description,
+          requested_date: payload.requestedDate,
+          client_notes: payload.clientNotes,
         },
       },
     ),
 
   journey: () =>
     apiRequest<{
-      journey:
-        import('@/services/api/types').JourneySummary;
+      journey: JourneySummary;
     }>('/journey'),
-  
+
   messageParticipants: () =>
     apiRequest<{
-      participants:
-        import('@/services/api/types').MessageParticipant[];
+      participants: MessageParticipant[];
     }>('/messages/participants'),
+
+  messages: () =>
+    apiRequest<MessagesResponse>('/messages'),
+
+  sendMessage: (message: string) =>
+    apiRequest<SendMessageResponse>('/messages', {
+      method: 'POST',
+      body: {
+        message,
+      },
+    }),
+
+  markMessagesRead: () =>
+    apiRequest<{ success: boolean }>('/messages/read', {
+      method: 'POST',
+    }),
 
   itinerary: () =>
     apiRequest<{
-      itinerary:
-        import('@/services/api/types').ItineraryEvent[];
+      itinerary: ItineraryEvent[];
     }>('/itinerary'),
-
-   
 
   /*
    * Existing Journey-based add-on endpoints.
@@ -266,8 +278,7 @@ export const api = {
    */
   addOns: () =>
     apiRequest<{
-      addOns:
-        import('@/services/api/types').AddOnItem[];
+      addOns: AddOnItem[];
     }>('/add-ons'),
 
   requestAddOn: (payload: {
@@ -276,8 +287,7 @@ export const api = {
     description?: string;
   }) =>
     apiRequest<{
-      addOns:
-        import('@/services/api/types').AddOnItem[];
+      addOns: AddOnItem[];
     }>('/add-ons', {
       method: 'POST',
       body: payload,
@@ -285,8 +295,7 @@ export const api = {
 
   notifications: () =>
     apiRequest<{
-      updates:
-        import('@/services/api/types').UpdateItem[];
+      updates: UpdateItem[];
       unreadCount: number;
     }>('/notifications'),
 
@@ -305,41 +314,26 @@ export const api = {
       },
     ),
 
-  sendMessage: (
-    topic: string,
-    message: string,
+  sendBookingMessage: (
+    bookingId: number,
+    payload: {
+      category: string;
+      message: string;
+    },
   ) =>
     apiRequest<{
-      success: boolean;
-      message: string;
-    }>('/messages', {
-      method: 'POST',
-      body: {
-        topic,
-        message,
-      },
-    }),
-
-    sendBookingMessage: (
-      bookingId: number,
-      payload: {
+      message: {
+        sent: boolean;
         category: string;
-        message: string;
+        body: string;
+        sentAt: string;
+        notificationId: number | null;
+      };
+    }>(
+      `/bookings/${bookingId}/messages`,
+      {
+        method: 'POST',
+        body: payload,
       },
-    ) =>
-      apiRequest<{
-        message: {
-          sent: boolean;
-          category: string;
-          body: string;
-          sentAt: string;
-          notificationId: number | null;
-        };
-      }>(
-        `/bookings/${bookingId}/messages`,
-        {
-          method: 'POST',
-          body: payload,
-        },
-      ),
+    ),
 };

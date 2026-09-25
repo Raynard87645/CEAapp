@@ -125,6 +125,7 @@ export type UpdateItem = {
   kind: string;
   unread: boolean;
 };
+
 export type MessageParticipant = {
   id: string;
   name: string;
@@ -132,6 +133,36 @@ export type MessageParticipant = {
   initials: string;
   tripId: number;
   tripCode: string;
+};
+
+export type MessageConversationType =
+  | 'client_driver'
+  | 'driver_cea';
+
+export type Message = {
+  id: number;
+  senderType: string;
+  senderId: number;
+  body: string;
+  readAt: string | null;
+  createdAt: string | null;
+};
+
+export type MessageConversation = {
+  id: number;
+  type: MessageConversationType;
+  status: 'open' | 'closed' | string;
+  tripId: number;
+  tripCode: string;
+};
+
+export type MessagesResponse = {
+  conversation: MessageConversation | null;
+  messages: Message[];
+};
+
+export type SendMessageResponse = {
+  message: Message;
 };
 
 export type ApiError = {
